@@ -17,6 +17,9 @@ class SourceParseService {
   /// 使用注入的 [client] 便于测试（默认使用真实 [http.Client]）。
   SourceParseService({http.Client? client}) : _client = client ?? http.Client();
 
+  /// 未解析到图片时的错误信息（分页时可用作"没有更多"的判断）。
+  static const String noImagesMessage = '未解析到图片，图源规则可能已失效';
+
   // =================== Web CORS 代理开关 ===================
   // Web 端浏览器受同源策略限制，直连图源会被 CORS 拦截；
   // Android/iOS/桌面等原生平台不受此限制，直接请求。
@@ -83,7 +86,7 @@ class SourceParseService {
     try {
       final List<ImageItem> items = parseHtml(response.body, config);
       if (items.isEmpty) {
-        return const SourceParseResult.failure('未解析到图片，图源规则可能已失效');
+        return const SourceParseResult.failure(noImagesMessage);
       }
       return SourceParseResult.success(items);
     } catch (e) {
@@ -134,6 +137,7 @@ class SourceParseService {
         width: _extractInt(node, config.extractRule.width),
         height: _extractInt(node, config.extractRule.height),
         sourcePage: _extractField(node, config.extractRule.sourcePage, base),
+        tags: _extractFieldList(node, config.extractRule.tags),
       ));
     }
     return items;
@@ -149,12 +153,44 @@ class SourceParseService {
     if (node == null) {
       return null;
     }
-    final String? value = _readValue(node, rule);
+    final String? value = _applyRegex(rule, _readValue(node, rule));
     if (value == null || value.trim().isEmpty) {
       return null;
     }
     final String trimmed = value.trim();
     return rule.resolveUrl ? base.resolve(trimmed).toString() : trimmed;
+  }
+
+  /// 多值提取：容器内全部匹配节点的取值经正则后按空白切分为列表。
+  List<String> _extractFieldList(Element container, FieldRule? rule) {
+    if (rule == null) {
+      return const <String>[];
+    }
+    final List<Element> nodes = rule.selector == null
+        ? <Element>[container]
+        : container.querySelectorAll(rule.selector!).toList();
+    if (nodes.isEmpty) {
+      return const <String>[];
+    }
+    final List<String> values = <String>[];
+    for (final Element node in nodes) {
+      final String? value = _applyRegex(rule, _readValue(node, rule));
+      if (value == null) {
+        continue;
+      }
+      values.addAll(
+        value.trim().split(RegExp(r'\s+')).where((String s) => s.isNotEmpty),
+      );
+    }
+    return values;
+  }
+
+  String? _applyRegex(FieldRule rule, String? value) {
+    if (value == null || rule.regex == null) {
+      return value;
+    }
+    final RegExpMatch? match = rule.regex!.firstMatch(value);
+    return match == null || match.groupCount < 1 ? null : match.group(1);
   }
 
   int? _extractInt(Element container, FieldRule? rule) {

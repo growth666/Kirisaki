@@ -166,7 +166,58 @@ void main() {
       final result = await service.search(_testConfig, keyword: 'test');
 
       expect(result.isSuccess, isFalse);
-      expect(result.errorMessage, '未解析到图片，图源规则可能已失效');
+      expect(result.errorMessage, SourceParseService.noImagesMessage);
+    });
+  });
+
+  group('tags 多值提取', () {
+    // 按 Moebooru 真实结构编写的图源配置（与 BuiltinSources 同构）。
+    // 注意：含 RegExp 的配置无法 const 构造，故用 final。
+    final SourceConfig moebooruConfig = SourceConfig(
+      id: 'moebooru',
+      name: 'moebooru',
+      baseUrl: 'https://example.test',
+      searchUrlTemplate: '/post?tags={keyword}',
+      extractRule: ExtractRule(
+        listSelector: 'ul#post-list-posts > li',
+        imageUrl: FieldRule(selector: 'a.directlink', attribute: 'href'),
+        tags: FieldRule(
+          selector: 'a.thumb img.preview',
+          attribute: 'title',
+          regex: RegExp(r'Tags:\s*(.*?)(?:\s*User:.*)?$'),
+        ),
+      ),
+    );
+
+    const String fixture = '''
+<div id="post-list">
+  <ul id="post-list-posts">
+    <li id="p101">
+      <a class="thumb" href="/post/show/101">
+        <img src="/data/preview/a1.jpg" class="preview"
+             alt="Rating: safe Score: 5 Tags: blue_sky cloud User: alice"
+             title="Rating: safe Score: 5 Tags: blue_sky cloud User: alice"
+             width="150" height="100">
+      </a>
+      <a class="directlink largeimg" href="/image/original/a1.jpg"></a>
+    </li>
+  </ul>
+</div>
+''';
+
+    test('正则切出 title 中的 Tags 段并按空白拆分', () async {
+      final SourceParseService service = SourceParseService(
+        client: MockClient(
+          (http.Request request) async => http.Response(fixture, 200),
+        ),
+      );
+
+      final result = await service.search(moebooruConfig, keyword: 'x');
+
+      expect(result.isSuccess, isTrue);
+      expect(result.items.single.imageUrl,
+          'https://example.test/image/original/a1.jpg');
+      expect(result.items.single.tags, <String>['blue_sky', 'cloud']);
     });
   });
 }

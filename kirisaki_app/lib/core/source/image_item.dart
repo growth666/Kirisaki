@@ -7,6 +7,7 @@ class ImageItem {
     this.width,
     this.height,
     this.sourcePage,
+    this.tags = const <String>[],
   });
 
   /// 图片地址。
@@ -26,4 +27,7 @@ class ImageItem {
 
   /// 原图所在页面地址。
   final String? sourcePage;
+
+  /// 图片标签。
+  final List<String> tags;
 }

@@ -56,6 +56,7 @@ class ExtractRule {
     this.width,
     this.height,
     this.sourcePage,
+    this.tags,
   });
 
   /// 图片节点列表选择器，如 `li.post`。
@@ -78,6 +79,9 @@ class ExtractRule {
 
   /// 原图所在详情页地址。
   final FieldRule? sourcePage;
+
+  /// 图片标签（多值规则：全部匹配节点的取值经正则后按空白切分）。
+  final FieldRule? tags;
 }
 
 /// 单个字段的提取规则。
@@ -90,6 +94,7 @@ class FieldRule {
     this.attribute,
     this.useText = false,
     this.resolveUrl = true,
+    this.regex,
   });
 
   /// 容器内相对 CSS 选择器；为 null 时表示节点容器本身。
@@ -105,4 +110,8 @@ class FieldRule {
   /// 为 true 时按图源 baseUrl 把相对地址解析为绝对地址；
   /// 数值/文本字段应设为 false。
   final bool resolveUrl;
+
+  /// 对取值先做正则提取（取第一个捕获组），再进入后续处理。
+  /// 例如从 Moebooru 的 `title` 属性中切出 Tags 段。
+  final RegExp? regex;
 }
