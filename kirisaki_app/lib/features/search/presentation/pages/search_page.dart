@@ -27,7 +27,9 @@ class _SearchPageState extends State<SearchPage> {
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
 
-  final List<SourceConfig> _sources = BuiltinSources.all;
+  // 只列启用的图源；禁用图源不参与搜索（图源管理后续轮次动态维护 enabled）。
+  final List<SourceConfig> _sources =
+      BuiltinSources.all.where((SourceConfig s) => s.enabled).toList();
   SourceConfig? _selectedSource;
 
   final List<ImageItem> _items = <ImageItem>[];
@@ -58,13 +60,20 @@ class _SearchPageState extends State<SearchPage> {
     if (!_scrollController.hasClients) {
       return;
     }
+    // 距底部不足 400 逻辑像素时预加载下一页（约 1~2 屏提前量），
+    // 避免滚到底部才触发加载造成等待。
     if (_scrollController.position.extentAfter < 400) {
       _loadMore();
     }
   }
 
   Future<void> _search() async {
+    // 请求锁：加载中直接返回，防止连点搜索按钮重复发起请求。
+    if (_loading) {
+      return;
+    }
     final SourceConfig? source = _selectedSource;
+    // 关键词自动 trim；空关键词不发起任何请求，仅提示。
     final String keyword = _searchController.text.trim();
     if (source == null) {
       _showSnackBar('请先选择图源');
@@ -103,6 +112,7 @@ class _SearchPageState extends State<SearchPage> {
   }
 
   Future<void> _loadMore() async {
+    // 上拉分页请求锁：首页加载中/分页加载中/没有更多时均不重复触发。
     if (_loading || _loadingMore || !_hasMore) {
       return;
     }
@@ -182,9 +192,21 @@ class _SearchPageState extends State<SearchPage> {
             requestFocusOnTap: false,
             label: const Text('图源'),
             onSelected: (SourceConfig? value) {
-              if (value != null) {
-                setState(() => _selectedSource = value);
+              if (value == null || value == _selectedSource) {
+                return;
               }
+              setState(() {
+                _selectedSource = value;
+                // 切换图源：清空结果列表并重置分页/错误状态，
+                // 避免上一图源的结果与新图源的结果混在一起。
+                _items.clear();
+                _page = 1;
+                _hasMore = true;
+                _error = null;
+                _searched = false;
+                _lastKeyword = null;
+                _lastSource = null;
+              });
             },
             dropdownMenuEntries: _sources
                 .map(
@@ -195,7 +217,8 @@ class _SearchPageState extends State<SearchPage> {
           ),
           const SizedBox(width: 8),
           IconButton.filled(
-            onPressed: _search,
+            // 加载中禁用按钮（与 _search 入口的请求锁双保险）。
+            onPressed: _loading ? null : _search,
             tooltip: '搜索',
             icon: const Icon(Icons.arrow_forward),
           ),
@@ -311,19 +334,26 @@ class _ImageCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            AspectRatio(
-              aspectRatio: aspectRatio,
-              child: CachedNetworkImage(
-                imageUrl: _displayUrl(thumbnail),
-                fit: BoxFit.cover,
-                placeholder: (BuildContext context, String url) =>
-                    ColoredBox(color: theme.colorScheme.surfaceContainerHighest),
-                errorWidget: (BuildContext context, String url, Object error) =>
-                    ColoredBox(
-                  color: theme.colorScheme.surfaceContainerHighest,
-                  child: Icon(
-                    Icons.broken_image_outlined,
-                    color: theme.colorScheme.outline,
+            // 图片区最小占位高度兜底（仅极扁横图生效），
+            // 减少瀑布流网格在图片尺寸变化时的重排跳动。
+            ConstrainedBox(
+              constraints: const BoxConstraints(minHeight: 140),
+              child: AspectRatio(
+                aspectRatio: aspectRatio,
+                child: CachedNetworkImage(
+                  imageUrl: _displayUrl(thumbnail),
+                  fit: BoxFit.cover,
+                  placeholder: (BuildContext context, String url) => ColoredBox(
+                    color: theme.colorScheme.surfaceContainerHighest,
+                  ),
+                  errorWidget:
+                      (BuildContext context, String url, Object error) =>
+                          ColoredBox(
+                    color: theme.colorScheme.surfaceContainerHighest,
+                    child: Icon(
+                      Icons.broken_image_outlined,
+                      color: theme.colorScheme.outline,
+                    ),
                   ),
                 ),
               ),

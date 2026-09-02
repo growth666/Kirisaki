@@ -77,6 +77,14 @@ class SourceParseService {
       return SourceParseResult.failure('网络请求异常：$e');
     }
 
+    if (response.statusCode == 429) {
+      return const SourceParseResult.failure(
+        '请求过于频繁，已被图源限流（429），请稍后再试',
+      );
+    }
+    if (response.statusCode == 404) {
+      return const SourceParseResult.failure('页面不存在（404），请检查图源地址配置');
+    }
     if (response.statusCode != 200) {
       return SourceParseResult.failure(
         '服务器响应异常（HTTP ${response.statusCode}）',
@@ -95,11 +103,13 @@ class SourceParseService {
   }
 
   /// 拼接搜索地址：[keyword] 替换 `{keyword}`（自动 URL 编码），
-  /// [page] 替换 `{page}`，再经 baseUrl 解析相对路径。
+  /// [page] 替换 `{page}`，`{limit}` 替换为 [SourceConfig.perPage]
+  /// （为 null 时替换为空字符串），再经 baseUrl 解析相对路径。
   Uri buildSearchUri(SourceConfig config, String keyword, int page) {
     final String raw = config.searchUrlTemplate
         .replaceAll('{keyword}', Uri.encodeComponent(keyword))
-        .replaceAll('{page}', '$page');
+        .replaceAll('{page}', '$page')
+        .replaceAll('{limit}', '${config.perPage ?? ''}');
     return Uri.parse(config.baseUrl).resolveUri(Uri.parse(raw));
   }
 
@@ -109,6 +119,9 @@ class SourceParseService {
   }
 
   /// Web 端按开关为请求地址拼接代理前缀；原生平台（含 Android）原样返回。
+  /// 注意：该开关同时控制搜索请求与 `_ImageCard._displayUrl` 的图片 URL
+  /// 代理（见 search_page.dart），两者必须保持一致，否则 Web 端会出现
+  /// 搜索结果可见但缩略图被 CORS 拦截的不一致现象。
   Uri _applyWebCorsProxy(SourceConfig config, Uri uri) {
     if (kIsWeb && webCorsProxyEnabled && config.useWebCorsProxy) {
       return buildProxyUri(uri);
@@ -185,12 +198,18 @@ class SourceParseService {
     return values;
   }
 
+  /// 容错的正则提取：空值、无匹配、正则异常均返回 null，
+  /// 调用方（如 [_extractFieldList]）会降级为空结果，保证解析不崩溃。
   String? _applyRegex(FieldRule rule, String? value) {
     if (value == null || rule.regex == null) {
       return value;
     }
-    final RegExpMatch? match = rule.regex!.firstMatch(value);
-    return match == null || match.groupCount < 1 ? null : match.group(1);
+    try {
+      final RegExpMatch? match = rule.regex!.firstMatch(value);
+      return match == null || match.groupCount < 1 ? null : match.group(1);
+    } catch (_) {
+      return null;
+    }
   }
 
   int? _extractInt(Element container, FieldRule? rule) {

@@ -12,6 +12,8 @@ class SourceConfig {
     this.timeout = const Duration(seconds: 10),
     this.userAgent = defaultUserAgent,
     this.useWebCorsProxy = true,
+    this.perPage,
+    this.enabled = true,
   });
 
   /// 默认请求 UA（部分图源会拦截 Dart 默认 UA）。
@@ -31,12 +33,13 @@ class SourceConfig {
   /// 搜索地址模板，支持占位符：
   /// - `{keyword}`：搜索关键词（自动 URL 编码）
   /// - `{page}`：页码
+  /// - `{limit}`：每页条数（取 [perPage]，为 null 时替换为空字符串）
   final String searchUrlTemplate;
 
   /// HTML 图片列表提取规则。
   final ExtractRule extractRule;
 
-  /// 请求超时时间。
+  /// 请求超时时间（推荐 8~12s，默认 10s）。
   final Duration timeout;
 
   /// 请求 User-Agent。
@@ -44,6 +47,12 @@ class SourceConfig {
 
   /// Web 端是否使用 CORS 代理（仅 Web 端生效，Android 等原生平台忽略）。
   final bool useWebCorsProxy;
+
+  /// 每页条数（对应模板 `{limit}` 占位符）；为 null 时不参与分页请求。
+  final int? perPage;
+
+  /// 图源启用开关（禁用图源不出现在搜索下拉框，图源管理页后续轮次可动态启停）。
+  final bool enabled;
 }
 
 /// HTML 图片列表提取规则（CSS 选择器）。

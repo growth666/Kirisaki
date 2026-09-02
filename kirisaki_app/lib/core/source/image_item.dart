@@ -10,7 +10,7 @@ class ImageItem {
     this.tags = const <String>[],
   });
 
-  /// 图片地址。
+  /// 原图地址（下载能力预留字段，本轮不实现下载逻辑）。
   final String imageUrl;
 
   /// 缩略图地址（网格列表展示用）。

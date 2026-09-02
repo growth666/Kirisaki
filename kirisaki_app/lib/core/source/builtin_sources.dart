@@ -29,7 +29,10 @@ abstract final class BuiltinSources {
       id: id,
       name: name,
       baseUrl: baseUrl,
-      searchUrlTemplate: '/post?tags={keyword}&page={page}',
+      // Moebooru 支持 limit 参数（每页条数），一次多拉减少分页请求次数。
+      searchUrlTemplate: '/post?tags={keyword}&page={page}&limit={limit}',
+      perPage: 100,
+      enabled: true,
       extractRule: ExtractRule(
         listSelector: 'ul#post-list-posts > li',
         imageUrl: const FieldRule(selector: 'a.directlink', attribute: 'href'),
