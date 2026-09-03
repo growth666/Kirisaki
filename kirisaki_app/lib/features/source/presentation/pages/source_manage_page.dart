@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 /// 图源管理页（占位）。
 ///
@@ -18,6 +19,13 @@ class SourceManagePage extends StatelessWidget {
             Icon(Icons.tune, size: 64, color: theme.colorScheme.primary),
             const SizedBox(height: 16),
             Text('图源管理功能开发中', style: theme.textTheme.titleMedium),
+            const SizedBox(height: 24),
+            // 导入入口（纯追加；原占位文案保留，既有测试断言不受影响）。
+            FilledButton.tonalIcon(
+              onPressed: () => context.push('/sources/import'),
+              icon: const Icon(Icons.post_add),
+              label: const Text('导入图源'),
+            ),
           ],
         ),
       ),

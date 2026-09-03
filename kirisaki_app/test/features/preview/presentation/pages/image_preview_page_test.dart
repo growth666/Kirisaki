@@ -4,7 +4,10 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
+import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 
+import 'package:kirisaki_app/core/favorite/favorite_service.dart';
 import 'package:kirisaki_app/core/source/image_item.dart';
 import 'package:kirisaki_app/features/preview/presentation/pages/image_preview_page.dart';
 
@@ -76,6 +79,40 @@ void main() {
     await tester.pump();
 
     expect(find.text('未找到图片信息'), findsOneWidget);
+  });
+
+  testWidgets('收藏按钮切换与状态实时同步', (WidgetTester tester) async {
+    SharedPreferencesAsyncPlatform.instance =
+        InMemorySharedPreferencesAsync.empty();
+    final FavoriteService service = FavoriteService();
+    const ImageItem item = ImageItem(
+      imageUrl: 'https://example.test/image/fav.jpg',
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(home: ImagePreviewPage(item: item, favoriteService: service)),
+    );
+    await tester.pump();
+
+    // 初始：未收藏（空心图标）。
+    expect(find.byIcon(Icons.favorite_border), findsOneWidget);
+
+    // 点击收藏：服务状态更新 + 图标变实心 + SnackBar 提示。
+    await tester.tap(find.byIcon(Icons.favorite_border));
+    await tester.pump();
+    await tester.pump();
+
+    expect(service.contains(item.imageUrl), isTrue);
+    expect(find.byIcon(Icons.favorite), findsOneWidget);
+    expect(find.text('已收藏'), findsOneWidget);
+
+    // 再次点击：取消收藏，图标恢复空心。
+    await tester.tap(find.byIcon(Icons.favorite));
+    await tester.pump();
+    await tester.pump();
+
+    expect(service.contains(item.imageUrl), isFalse);
+    expect(find.byIcon(Icons.favorite_border), findsOneWidget);
   });
 
   group('zoomMatrixAt', () {

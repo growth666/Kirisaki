@@ -158,7 +158,23 @@ class _SearchPageState extends State<SearchPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('搜图')),
+      appBar: AppBar(
+        title: const Text('搜图'),
+        actions: [
+          // 图源管理页入口（含"导入图源"按钮）。
+          IconButton(
+            tooltip: '图源管理',
+            icon: const Icon(Icons.tune),
+            onPressed: () => context.push('/sources'),
+          ),
+          // 收藏页入口（纯追加，不影响既有搜索逻辑）。
+          IconButton(
+            tooltip: '我的收藏',
+            icon: const Icon(Icons.favorite_border),
+            onPressed: () => context.push('/favorites'),
+          ),
+        ],
+      ),
       body: Column(
         children: [
           _buildSearchBar(),

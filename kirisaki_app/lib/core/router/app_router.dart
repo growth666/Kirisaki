@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/favorite/presentation/pages/favorites_page.dart';
 import '../../features/preview/presentation/pages/image_preview_page.dart';
 import '../../features/search/presentation/pages/search_page.dart';
+import '../../features/source/presentation/pages/source_import_page.dart';
 import '../../features/source/presentation/pages/source_manage_page.dart';
 import '../constants/app_constants.dart';
 import '../source/image_item.dart';
@@ -37,6 +39,18 @@ final GoRouter appRouter = GoRouter(
           imageUrl: state.uri.queryParameters[AppConstants.previewUrlParam],
         );
       },
+    ),
+    GoRoute(
+      path: RouteNames.favorites,
+      name: 'favorites',
+      builder: (BuildContext context, GoRouterState state) =>
+          const FavoritesPage(),
+    ),
+    GoRoute(
+      path: RouteNames.sourceImport,
+      name: 'sourceImport',
+      builder: (BuildContext context, GoRouterState state) =>
+          const SourceImportPage(),
     ),
   ],
 );

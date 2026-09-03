@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/gestures.dart' show PointerScrollEvent, PointerSignalEvent;
 import 'package:flutter/material.dart';
 
+import '../../../../core/favorite/favorite_service.dart';
 import '../../../../core/source/image_item.dart';
 import '../../../../core/source/source_parse_service.dart';
 
@@ -37,13 +38,21 @@ Matrix4 zoomMatrixAt(
 ///
 /// 下载保存、收藏等功能留给后续轮次。
 class ImagePreviewPage extends StatelessWidget {
-  const ImagePreviewPage({super.key, this.imageUrl, this.item});
+  const ImagePreviewPage({
+    super.key,
+    this.imageUrl,
+    this.item,
+    this.favoriteService,
+  });
 
   /// 兼容旧路由参数：仅图片地址（测试与深链场景使用）。
   final String? imageUrl;
 
   /// 完整图片数据（含标签等），由搜索页经路由 extra 传入。
   final ImageItem? item;
+
+  /// 注入的收藏服务（测试用），默认使用全局单例。
+  final FavoriteService? favoriteService;
 
   @override
   Widget build(BuildContext context) {
@@ -52,11 +61,64 @@ class ImagePreviewPage extends StatelessWidget {
             ? ImageItem(imageUrl: imageUrl!)
             : null);
     return Scaffold(
-      appBar: AppBar(title: const Text('图片预览')),
+      appBar: AppBar(
+        title: const Text('图片预览'),
+        actions: [
+          if (resolved != null)
+            _FavoriteButton(
+              item: resolved,
+              service: favoriteService ?? FavoriteService.instance,
+            ),
+        ],
+      ),
       body: resolved == null
           ? const _MissingView()
           : _PreviewBody(item: resolved),
     );
+  }
+}
+
+/// 收藏/取消收藏按钮：监听收藏服务，图标状态实时同步。
+class _FavoriteButton extends StatelessWidget {
+  const _FavoriteButton({required this.item, required this.service});
+
+  final ImageItem item;
+  final FavoriteService service;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: service,
+      builder: (BuildContext context, Widget? child) {
+        final bool favorited = service.contains(item.imageUrl);
+        return IconButton(
+          tooltip: favorited ? '取消收藏' : '收藏',
+          icon: Icon(
+            favorited ? Icons.favorite : Icons.favorite_border,
+            color: favorited ? Theme.of(context).colorScheme.primary : null,
+          ),
+          onPressed: () async {
+            if (favorited) {
+              await service.remove(item.imageUrl);
+              if (context.mounted) {
+                _showSnackBar(context, '已取消收藏');
+              }
+            } else {
+              await service.add(item);
+              if (context.mounted) {
+                _showSnackBar(context, '已收藏');
+              }
+            }
+          },
+        );
+      },
+    );
+  }
+
+  void _showSnackBar(BuildContext context, String message) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
   }
 }
 

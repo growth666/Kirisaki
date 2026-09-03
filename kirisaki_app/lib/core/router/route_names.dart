@@ -8,4 +8,10 @@ abstract final class RouteNames {
 
   /// 图片预览页。
   static const String preview = '/preview';
+
+  /// 收藏页。
+  static const String favorites = '/favorites';
+
+  /// 图源导入页。
+  static const String sourceImport = '/sources/import';
 }
