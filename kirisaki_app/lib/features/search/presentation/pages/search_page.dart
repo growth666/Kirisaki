@@ -143,7 +143,11 @@ class _SearchPageState extends State<SearchPage> {
   }
 
   void _openPreview(ImageItem item) {
-    context.push('/preview?url=${Uri.encodeComponent(item.imageUrl)}');
+    // url 参数兼容保留，extra 携带完整 ImageItem（含标签）供预览页渲染。
+    context.push(
+      '/preview?url=${Uri.encodeComponent(item.imageUrl)}',
+      extra: item,
+    );
   }
 
   void _showSnackBar(String message) {

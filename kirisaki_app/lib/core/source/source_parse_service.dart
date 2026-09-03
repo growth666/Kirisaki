@@ -6,6 +6,7 @@ import 'package:html/parser.dart' as html_parser;
 import 'package:http/http.dart' as http;
 
 import 'image_item.dart';
+import 'moebooru_json_parser.dart';
 import 'source_config.dart';
 import 'source_parse_result.dart';
 
@@ -13,6 +14,10 @@ import 'source_parse_result.dart';
 ///
 /// 任何失败（配置错误/超时/网络/解析）都会以 [SourceParseResult.failure]
 /// 返回，不抛异常，UI 可直接展示 [SourceParseResult.errorMessage]。
+///
+/// 网络说明：海外 booru 站点（无论 HTML 还是 JSON 接口）从国内网络
+/// 裸请求极易触发 Cloudflare 拦截（401/403）；Web 端正常访问必须依赖
+/// [webCorsProxyEnabled]/[webCorsProxyPrefix] 的代理转发。
 class SourceParseService {
   /// 使用注入的 [client] 便于测试（默认使用真实 [http.Client]）。
   SourceParseService({http.Client? client}) : _client = client ?? http.Client();
@@ -50,7 +55,9 @@ class SourceParseService {
     if (config.searchUrlTemplate.trim().isEmpty) {
       return const SourceParseResult.failure('图源配置错误：缺少搜索地址模板');
     }
-    if (config.extractRule.listSelector.trim().isEmpty) {
+    // 列表选择器仅 HTML 图源需要；JSON 图源走 post.json 结构，无需该规则。
+    if (config.sourceType == SourceType.html &&
+        config.extractRule.listSelector.trim().isEmpty) {
       return const SourceParseResult.failure('图源配置错误：缺少图片列表选择器');
     }
 
@@ -77,6 +84,11 @@ class SourceParseService {
       return SourceParseResult.failure('网络请求异常：$e');
     }
 
+    if (response.statusCode == 401) {
+      return const SourceParseResult.failure(
+        '未授权访问（401），图源可能需要登录凭证或反爬校验',
+      );
+    }
     if (response.statusCode == 429) {
       return const SourceParseResult.failure(
         '请求过于频繁，已被图源限流（429），请稍后再试',
@@ -92,7 +104,14 @@ class SourceParseService {
     }
 
     try {
-      final List<ImageItem> items = parseHtml(response.body, config);
+      // 按图源类型分流：JSON 图源走 post.json 解析器，
+      // HTML 图源沿用原 CSS 选择器解析逻辑（原代码不变）。
+      final List<ImageItem> items = config.sourceType == SourceType.json
+          ? MoebooruJsonParser.parse(
+              response.body,
+              baseUri: Uri.parse(config.baseUrl),
+            )
+          : parseHtml(response.body, config);
       if (items.isEmpty) {
         return const SourceParseResult.failure(noImagesMessage);
       }

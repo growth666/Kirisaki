@@ -1,3 +1,12 @@
+/// 图源接口类型。
+enum SourceType {
+  /// 抓取 HTML 页面并用 CSS 选择器解析。
+  html,
+
+  /// 请求 JSON 接口（Moebooru 标准 post.json）。
+  json,
+}
+
 /// 图源配置。
 ///
 /// 描述一个图源站点的搜索地址模板与 HTML 提取规则，
@@ -14,6 +23,7 @@ class SourceConfig {
     this.useWebCorsProxy = true,
     this.perPage,
     this.enabled = true,
+    this.sourceType = SourceType.html,
   });
 
   /// 默认请求 UA（部分图源会拦截 Dart 默认 UA）。
@@ -53,6 +63,9 @@ class SourceConfig {
 
   /// 图源启用开关（禁用图源不出现在搜索下拉框，图源管理页后续轮次可动态启停）。
   final bool enabled;
+
+  /// 图源接口类型（默认 [SourceType.html]，现有配置与测试零改动）。
+  final SourceType sourceType;
 }
 
 /// HTML 图片列表提取规则（CSS 选择器）。

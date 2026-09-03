@@ -10,6 +10,16 @@ abstract final class BuiltinSources {
       name: 'konachan.net',
       baseUrl: 'https://konachan.net',
     ),
+    _moebooruJson(
+      id: 'safebooru',
+      name: 'Safebooru',
+      baseUrl: 'https://safebooru.org',
+    ),
+    _moebooruJson(
+      id: 'realbooru',
+      name: 'Realbooru',
+      baseUrl: 'https://realbooru.com',
+    ),
   ];
 
   /// Moebooru 引擎（yande.re / konachan.net）通用配置。
@@ -33,6 +43,7 @@ abstract final class BuiltinSources {
       searchUrlTemplate: '/post?tags={keyword}&page={page}&limit={limit}',
       perPage: 100,
       enabled: true,
+      sourceType: SourceType.html,
       extractRule: ExtractRule(
         listSelector: 'ul#post-list-posts > li',
         imageUrl: const FieldRule(selector: 'a.directlink', attribute: 'href'),
@@ -52,6 +63,32 @@ abstract final class BuiltinSources {
           attribute: 'title',
           regex: RegExp(r'Tags:\s*(.*?)(?:\s*User:.*)?$'),
         ),
+      ),
+    );
+  }
+
+  /// JSON 接口图源（按 Moebooru 标准 post.json 响应结构解析）。
+  ///
+  /// 注意：Safebooru / Realbooru 实际并非 Moebooru 引擎，
+  /// 其真实接口为 dapi 且响应结构不同；上线验证若返回 404/解析失败，
+  /// 只需按站点真实接口修改 searchUrlTemplate（解析器按 Moebooru 结构）。
+  static SourceConfig _moebooruJson({
+    required String id,
+    required String name,
+    required String baseUrl,
+  }) {
+    return SourceConfig(
+      id: id,
+      name: name,
+      baseUrl: baseUrl,
+      searchUrlTemplate: '/post.json?tags={keyword}&page={page}&limit={limit}',
+      perPage: 100,
+      enabled: true,
+      sourceType: SourceType.json,
+      // JSON 图源不使用 HTML 提取规则，占位仅为满足字段必填。
+      extractRule: const ExtractRule(
+        listSelector: 'li',
+        imageUrl: FieldRule(),
       ),
     );
   }

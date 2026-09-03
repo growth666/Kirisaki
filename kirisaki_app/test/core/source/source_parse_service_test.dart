@@ -376,6 +376,72 @@ void main() {
       expect(requestCount, 0);
     });
   });
+
+  group('JSON 图源分流', () {
+    // JSON 图源配置：extractRule 为占位，走 Moebooru post.json 解析。
+    final SourceConfig jsonConfig = SourceConfig(
+      id: 'json',
+      name: 'json',
+      baseUrl: 'https://example.test',
+      searchUrlTemplate: '/post.json?tags={keyword}&page={page}',
+      sourceType: SourceType.json,
+      extractRule: const ExtractRule(
+        listSelector: 'li',
+        imageUrl: FieldRule(),
+      ),
+    );
+
+    const String jsonPosts = '''
+[
+  {"id": 1, "tags": "sky cloud",
+   "file_url": "https://files.example.test/a.jpg",
+   "preview_url": "https://files.example.test/a_preview.jpg",
+   "width": 1920, "height": 1080}
+]
+''';
+
+    test('JSON 图源请求 post.json 并成功解析', () async {
+      final SourceParseService service = SourceParseService(
+        client: MockClient((http.Request request) async {
+          expect(request.url.path, '/post.json');
+          return http.Response(jsonPosts, 200);
+        }),
+      );
+
+      final result = await service.search(jsonConfig, keyword: 'sky');
+
+      expect(result.isSuccess, isTrue);
+      expect(result.items.single.tags, <String>['sky', 'cloud']);
+      expect(result.items.single.sourcePage,
+          'https://example.test/post/show/1');
+    });
+
+    test('JSON 空结果复用 noImagesMessage（空态/没有更多）', () async {
+      final SourceParseService service = SourceParseService(
+        client: MockClient(
+          (http.Request request) async => http.Response('[]', 200),
+        ),
+      );
+
+      final result = await service.search(jsonConfig, keyword: 'none');
+
+      expect(result.isSuccess, isFalse);
+      expect(result.errorMessage, SourceParseService.noImagesMessage);
+    });
+
+    test('JSON 解析异常复用"解析失败"文案', () async {
+      final SourceParseService service = SourceParseService(
+        client: MockClient(
+          (http.Request request) async => http.Response('bad{', 200),
+        ),
+      );
+
+      final result = await service.search(jsonConfig, keyword: 'x');
+
+      expect(result.isSuccess, isFalse);
+      expect(result.errorMessage, startsWith('解析失败'));
+    });
+  });
 }
 
 /// 明确 UTF-8 的响应头：http.Response 默认按 latin1 编码 body，
