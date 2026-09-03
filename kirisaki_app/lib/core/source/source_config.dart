@@ -66,7 +66,46 @@ class SourceConfig {
 
   /// 图源接口类型（默认 [SourceType.html]，现有配置与测试零改动）。
   final SourceType sourceType;
+
+  /// 序列化为 JSON 对象（供自定义图源持久化；内置图源不参与）。
+  Map<String, Object?> toJson() => <String, Object?>{
+        'id': id,
+        'name': name,
+        'baseUrl': baseUrl,
+        'searchUrlTemplate': searchUrlTemplate,
+        'extractRule': extractRule.toJson(),
+        'timeoutSeconds': timeout.inSeconds,
+        'userAgent': userAgent,
+        'useWebCorsProxy': useWebCorsProxy,
+        'perPage': perPage,
+        'enabled': enabled,
+        'sourceType': sourceType.name,
+      };
+
+  /// 从 JSON 对象恢复；缺失字段取默认值。
+  factory SourceConfig.fromJson(Map<String, Object?> json) => SourceConfig(
+        id: json['id'] as String,
+        name: json['name'] as String,
+        baseUrl: json['baseUrl'] as String,
+        searchUrlTemplate: json['searchUrlTemplate'] as String,
+        extractRule: ExtractRule.fromJson(
+          json['extractRule']! as Map<String, Object?>,
+        ),
+        timeout: Duration(seconds: json['timeoutSeconds'] as int? ?? 10),
+        userAgent: json['userAgent'] as String? ?? defaultUserAgent,
+        useWebCorsProxy: json['useWebCorsProxy'] as bool? ?? true,
+        perPage: json['perPage'] as int?,
+        enabled: json['enabled'] as bool? ?? true,
+        sourceType: SourceType.values.firstWhere(
+          (SourceType t) => t.name == json['sourceType'],
+          orElse: () => SourceType.html,
+        ),
+      );
 }
+
+/// 从 JSON 恢复可空的 FieldRule；非对象数据返回 null。
+FieldRule? _fieldRuleFromJson(Object? value) =>
+    value is Map<String, Object?> ? FieldRule.fromJson(value) : null;
 
 /// HTML 图片列表提取规则（CSS 选择器）。
 class ExtractRule {
@@ -104,6 +143,31 @@ class ExtractRule {
 
   /// 图片标签（多值规则：全部匹配节点的取值经正则后按空白切分）。
   final FieldRule? tags;
+
+  /// 序列化为 JSON 对象。
+  Map<String, Object?> toJson() => <String, Object?>{
+        'listSelector': listSelector,
+        'imageUrl': imageUrl.toJson(),
+        'thumbnailUrl': thumbnailUrl?.toJson(),
+        'previewUrl': previewUrl?.toJson(),
+        'width': width?.toJson(),
+        'height': height?.toJson(),
+        'sourcePage': sourcePage?.toJson(),
+        'tags': tags?.toJson(),
+      };
+
+  /// 从 JSON 对象恢复。
+  factory ExtractRule.fromJson(Map<String, Object?> json) => ExtractRule(
+        listSelector: json['listSelector'] as String,
+        imageUrl:
+            FieldRule.fromJson(json['imageUrl']! as Map<String, Object?>),
+        thumbnailUrl: _fieldRuleFromJson(json['thumbnailUrl']),
+        previewUrl: _fieldRuleFromJson(json['previewUrl']),
+        width: _fieldRuleFromJson(json['width']),
+        height: _fieldRuleFromJson(json['height']),
+        sourcePage: _fieldRuleFromJson(json['sourcePage']),
+        tags: _fieldRuleFromJson(json['tags']),
+      );
 }
 
 /// 单个字段的提取规则。
@@ -136,4 +200,22 @@ class FieldRule {
   /// 对取值先做正则提取（取第一个捕获组），再进入后续处理。
   /// 例如从 Moebooru 的 `title` 属性中切出 Tags 段。
   final RegExp? regex;
+
+  /// 序列化为 JSON 对象（regex 存 pattern 字符串）。
+  Map<String, Object?> toJson() => <String, Object?>{
+        'selector': selector,
+        'attribute': attribute,
+        'useText': useText,
+        'resolveUrl': resolveUrl,
+        'regex': regex?.pattern,
+      };
+
+  /// 从 JSON 对象恢复；缺失字段取默认值。
+  factory FieldRule.fromJson(Map<String, Object?> json) => FieldRule(
+        selector: json['selector'] as String?,
+        attribute: json['attribute'] as String?,
+        useText: json['useText'] as bool? ?? false,
+        resolveUrl: json['resolveUrl'] as bool? ?? true,
+        regex: json['regex'] is String ? RegExp(json['regex']! as String) : null,
+      );
 }

@@ -18,6 +18,8 @@ dependencies:
   http: ^1.6.0
   # HTML 解析（CSS 选择器）
   html: ^0.15.7
+  # Web 平台 API（浏览器下载实现用，规避已废弃的 dart:html）
+  web: ^1.1.1
   # 网络图片加载与缓存
   cached_network_image: ^3.4.1
   # 瀑布流网格布局
@@ -36,6 +38,8 @@ dev_dependencies:
     sdk: flutter
 
   flutter_lints: ^6.0.0
+  # shared_preferences 官方内存测试实现
+  shared_preferences_platform_interface: ^2.4.2
 
 flutter:
   uses-material-design: true

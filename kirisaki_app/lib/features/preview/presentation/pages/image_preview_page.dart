@@ -1,13 +1,41 @@
+import 'dart:math' as math;
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/gestures.dart' show PointerScrollEvent, PointerSignalEvent;
 import 'package:flutter/material.dart';
 
 import '../../../../core/source/image_item.dart';
 import '../../../../core/source/source_parse_service.dart';
 
-/// 大图预览页：展示原图与标签列表，AppBar 返回上一页。
+/// 以 [focal]（视口坐标）为焦点，对 [current] 应用 [factor] 倍缩放，
+/// 并将缩放夹在 [minScale]~[maxScale] 区间（默认 1~8）。
 ///
-/// 本轮仅实现原图展示；缩放、下载保存等功能留给后续轮次。
+/// 抽为顶层纯函数便于单测；矩阵运算顺序：
+/// 新矩阵 = T(focal) · S(clamped) · T(-focal) · current。
+Matrix4 zoomMatrixAt(
+  Matrix4 current,
+  double factor, {
+  required Offset focal,
+  double minScale = 1.0,
+  double maxScale = 8.0,
+}) {
+  final double currentScale = current.getMaxScaleOnAxis();
+  if (currentScale <= 0 || factor <= 0) {
+    return current;
+  }
+  final double target = (currentScale * factor).clamp(minScale, maxScale);
+  final double clamped = target / currentScale;
+  final Matrix4 next = Matrix4.identity()
+    ..translateByDouble(focal.dx, focal.dy, 0, 1)
+    ..scaleByDouble(clamped, clamped, 1, 1)
+    ..translateByDouble(-focal.dx, -focal.dy, 0, 1);
+  return next * current;
+}
+
+/// 大图预览页：展示原图与标签列表，支持双指/滚轮缩放，AppBar 返回上一页。
+///
+/// 下载保存、收藏等功能留给后续轮次。
 class ImagePreviewPage extends StatelessWidget {
   const ImagePreviewPage({super.key, this.imageUrl, this.item});
 
@@ -32,11 +60,41 @@ class ImagePreviewPage extends StatelessWidget {
   }
 }
 
-/// 预览主体：原图 + 标签 + 来源地址。
-class _PreviewBody extends StatelessWidget {
+/// 预览主体：可缩放原图 + 标签 + 来源地址。
+class _PreviewBody extends StatefulWidget {
   const _PreviewBody({required this.item});
 
   final ImageItem item;
+
+  @override
+  State<_PreviewBody> createState() => _PreviewBodyState();
+}
+
+class _PreviewBodyState extends State<_PreviewBody> {
+  /// 缩放/平移变换控制器（双指缩放与滚轮缩放共用）。
+  final TransformationController _transformationController =
+      TransformationController();
+
+  @override
+  void dispose() {
+    _transformationController.dispose();
+    super.dispose();
+  }
+
+  /// 鼠标滚轮缩放：以光标位置为焦点，滚轮向上放大、向下缩小。
+  void _onPointerSignal(PointerSignalEvent event) {
+    if (event is! PointerScrollEvent || event.scrollDelta.dy == 0) {
+      return;
+    }
+    // 每 100 逻辑像素滚轮行程缩放 1.1 倍。
+    final double factor =
+        math.pow(1.1, -event.scrollDelta.dy / 100).toDouble();
+    _transformationController.value = zoomMatrixAt(
+      _transformationController.value,
+      factor,
+      focal: event.localPosition,
+    );
+  }
 
   /// Web 端原图同样走 CORS 代理（与搜索页缩略图逻辑一致，
   /// 开关见 [SourceParseService.webCorsProxyEnabled]）。
@@ -50,18 +108,30 @@ class _PreviewBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
+    final ImageItem item = widget.item;
     return Column(
       children: [
-        // 原图区域：加载中转圈占位，失败显示错误占位组件。
+        // 原图区域：InteractiveViewer 提供双指缩放与拖动，
+        // Listener 捕获滚轮事件实现鼠标缩放；加载失败显示错误占位组件。
         Expanded(
-          child: Center(
-            child: CachedNetworkImage(
-              imageUrl: _displayUrl(item.imageUrl),
-              fit: BoxFit.contain,
-              placeholder: (BuildContext context, String url) =>
-                  const Center(child: CircularProgressIndicator()),
-              errorWidget: (BuildContext context, String url, Object error) =>
-                  const _ImageErrorPlaceholder(),
+          child: Listener(
+            onPointerSignal: _onPointerSignal,
+            child: InteractiveViewer(
+              transformationController: _transformationController,
+              minScale: 1.0,
+              maxScale: 8.0,
+              clipBehavior: Clip.hardEdge,
+              child: Center(
+                child: CachedNetworkImage(
+                  imageUrl: _displayUrl(item.imageUrl),
+                  fit: BoxFit.contain,
+                  placeholder: (BuildContext context, String url) =>
+                      const Center(child: CircularProgressIndicator()),
+                  errorWidget:
+                      (BuildContext context, String url, Object error) =>
+                          const _ImageErrorPlaceholder(),
+                ),
+              ),
             ),
           ),
         ),

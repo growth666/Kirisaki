@@ -1,5 +1,3 @@
-import 'package:cached_network_image/cached_network_image.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:go_router/go_router.dart';
@@ -9,6 +7,7 @@ import '../../../../core/source/image_item.dart';
 import '../../../../core/source/source_config.dart';
 import '../../../../core/source/source_parse_result.dart';
 import '../../../../core/source/source_parse_service.dart';
+import '../widgets/thumbnail_image.dart';
 
 /// 搜索页：关键词搜索 + 瀑布流图片列表 + 上拉分页。
 class SearchPage extends StatefulWidget {
@@ -313,14 +312,6 @@ class _ImageCard extends StatelessWidget {
   final ImageItem item;
   final VoidCallback onTap;
 
-  /// Web 端图片同样走 CORS 代理（与搜索请求一致），原生平台直连。
-  static String _displayUrl(String url) {
-    if (kIsWeb && SourceParseService.webCorsProxyEnabled) {
-      return SourceParseService.buildProxyUri(Uri.parse(url)).toString();
-    }
-    return url;
-  }
-
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
@@ -340,26 +331,12 @@ class _ImageCard extends StatelessWidget {
           children: [
             // 图片区最小占位高度兜底（仅极扁横图生效），
             // 减少瀑布流网格在图片尺寸变化时的重排跳动。
+            // 缩略图走内存缓存组件（ThumbnailImage），原图不接入缓存。
             ConstrainedBox(
               constraints: const BoxConstraints(minHeight: 140),
               child: AspectRatio(
                 aspectRatio: aspectRatio,
-                child: CachedNetworkImage(
-                  imageUrl: _displayUrl(thumbnail),
-                  fit: BoxFit.cover,
-                  placeholder: (BuildContext context, String url) => ColoredBox(
-                    color: theme.colorScheme.surfaceContainerHighest,
-                  ),
-                  errorWidget:
-                      (BuildContext context, String url, Object error) =>
-                          ColoredBox(
-                    color: theme.colorScheme.surfaceContainerHighest,
-                    child: Icon(
-                      Icons.broken_image_outlined,
-                      color: theme.colorScheme.outline,
-                    ),
-                  ),
-                ),
+                child: ThumbnailImage(url: thumbnail),
               ),
             ),
             if (item.tags.isNotEmpty)
