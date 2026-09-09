@@ -24,16 +24,26 @@ import 'image_item.dart';
 abstract final class MoebooruJsonParser {
   /// 解析 Moebooru `post.json` 响应体为 [ImageItem] 列表。
   ///
-  /// 顶层支持 JSON 数组，宽松兼容 `{"posts": [...]}` 包裹形式；
-  /// 缺失关键图片地址的元素会被跳过。
-  static List<ImageItem> parse(String body, {required Uri baseUri}) {
+  /// 顶层支持 JSON 数组；对象形式按 [listKey]（默认 'posts'，可配
+  /// 'data' 等）取列表；[fieldMapping] 为「解析器标准键 → 响应键」的
+  /// 字段映射（如 {'file_url': 'link'}），缺失关键图片地址的元素跳过。
+  static List<ImageItem> parse(
+    String body, {
+    required Uri baseUri,
+    String? listKey,
+    Map<String, String>? fieldMapping,
+  }) {
     final Object? decoded = jsonDecode(body);
     final List<Object?> posts;
     if (decoded is List<Object?>) {
       posts = decoded;
-    } else if (decoded is Map<String, Object?> &&
-        decoded['posts'] is List<Object?>) {
-      posts = decoded['posts']! as List<Object?>;
+    } else if (decoded is Map<String, Object?>) {
+      final Object? list = decoded[listKey ?? 'posts'];
+      if (list is List<Object?>) {
+        posts = list;
+      } else {
+        throw const FormatException('JSON 顶层结构不是 post 列表');
+      }
     } else {
       throw const FormatException('JSON 顶层结构不是 post 列表');
     }
@@ -43,7 +53,7 @@ abstract final class MoebooruJsonParser {
       if (entry is! Map<String, Object?>) {
         continue;
       }
-      final ImageItem? item = _mapPost(entry, baseUri);
+      final ImageItem? item = _mapPost(entry, baseUri, fieldMapping);
       if (item != null) {
         items.add(item);
       }
@@ -51,28 +61,45 @@ abstract final class MoebooruJsonParser {
     return items;
   }
 
-  static ImageItem? _mapPost(Map<String, Object?> post, Uri baseUri) {
+  static ImageItem? _mapPost(
+    Map<String, Object?> post,
+    Uri baseUri,
+    Map<String, String>? fieldMapping,
+  ) {
+    // 字段映射：把映射目标（响应键）的值写入解析器标准键，
+    // 例如 {'file_url': 'link'} → file_url 取 link 的值；
+    // 默认无映射时行为与 Moebooru 原生结构完全一致。
+    Map<String, Object?> lookup = post;
+    if (fieldMapping != null && fieldMapping.isNotEmpty) {
+      lookup = Map<String, Object?>.of(post);
+      for (final MapEntry<String, String> m in fieldMapping.entries) {
+        if (lookup.containsKey(m.value)) {
+          lookup[m.key] = lookup[m.value];
+        }
+      }
+    }
+
     // 原图地址：file_url 优先，缺失时依次兜底 jpeg_url / sample_url。
-    final String? fileUrl = _stringField(post['file_url']);
-    final String? jpegUrl = _stringField(post['jpeg_url']);
-    final String? sampleUrl = _stringField(post['sample_url']);
+    final String? fileUrl = _stringField(lookup['file_url']);
+    final String? jpegUrl = _stringField(lookup['jpeg_url']);
+    final String? sampleUrl = _stringField(lookup['sample_url']);
     final String imageUrl = fileUrl ?? jpegUrl ?? sampleUrl ?? '';
     if (imageUrl.isEmpty) {
       return null;
     }
 
-    final Object? id = post['id'];
+    final Object? id = lookup['id'];
     final String? sourcePage =
         id == null ? null : baseUri.resolve('/post/show/$id').toString();
 
     return ImageItem(
       imageUrl: imageUrl,
-      thumbnailUrl: _stringField(post['preview_url']),
+      thumbnailUrl: _stringField(lookup['preview_url']),
       previewUrl: sampleUrl,
-      width: _intField(post['width']),
-      height: _intField(post['height']),
+      width: _intField(lookup['width']),
+      height: _intField(lookup['height']),
       sourcePage: sourcePage,
-      tags: _parseTags(post['tags']),
+      tags: _parseTags(lookup['tags']),
     );
   }
 

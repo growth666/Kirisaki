@@ -22,6 +22,42 @@ abstract final class BuiltinSources {
     ),
   ];
 
+  /// 首页推荐流图源（国内可直连的随机二次元图源）。
+  ///
+  /// **不加入 [all]**（不出现在搜索下拉框），仅供推荐流使用，
+  /// 不影响原有图源选择逻辑。
+  ///
+  /// 接口实测：`https://t.alcy.cc/json?pc=N`（带尾斜杠免 301 跳转），
+  /// 返回 `{"data":[{"link":"https://..."}]}` —— 列表键 `data`、地址字段 `link`。
+  /// `perPage` 即 `pc` 参数（每次返回张数），可按主页列数调整。
+  /// 上拉分页 = 再次请求随机接口追加新图（接口每次随机返回，天然"下滑更新"）。
+  ///
+  /// 注意：接口域名带 `Access-Control-Allow-Origin: *`，国内可直连，
+  /// 故 `useWebCorsProxy: false` 跳过代理（Web 端 fetch 无 CORS 问题）；
+  /// 但图片域名 tc.alcy.cc 不带 CORS 头，Web 端缩略图仍受浏览器限制，
+  /// 桌面/移动端直连可完整显示。
+  static final SourceConfig recommend = SourceConfig(
+    id: 'alcy_recommend',
+    name: '推荐',
+    baseUrl: 'https://t.alcy.cc',
+    searchUrlTemplate: '/json/?pc={limit}',
+    perPage: 18,
+    enabled: true,
+    useWebCorsProxy: false,
+    sourceType: SourceType.json,
+    requiresKeyword: false,
+    jsonListKey: 'data',
+    jsonFieldMapping: const <String, String>{
+      'file_url': 'link',
+      'preview_url': 'link',
+    },
+    // JSON 图源不使用 HTML 提取规则，占位仅为满足字段必填。
+    extractRule: const ExtractRule(
+      listSelector: 'li',
+      imageUrl: FieldRule(),
+    ),
+  );
+
   /// Moebooru 引擎（yande.re / konachan.net）通用配置。
   ///
   /// 选择器按 Moebooru 官方模板核实：

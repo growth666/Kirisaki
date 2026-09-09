@@ -46,7 +46,8 @@ class SourceParseService {
     required String keyword,
     int page = 1,
   }) async {
-    if (keyword.trim().isEmpty) {
+    // 默认图源要求非空关键词；requiresKeyword=false 的图源（推荐流等）跳过。
+    if (config.requiresKeyword && keyword.trim().isEmpty) {
       return const SourceParseResult.failure('请输入搜索关键词');
     }
     if (config.baseUrl.trim().isEmpty) {
@@ -110,6 +111,8 @@ class SourceParseService {
           ? MoebooruJsonParser.parse(
               response.body,
               baseUri: Uri.parse(config.baseUrl),
+              listKey: config.jsonListKey,
+              fieldMapping: config.jsonFieldMapping,
             )
           : parseHtml(response.body, config);
       if (items.isEmpty) {

@@ -24,6 +24,9 @@ class SourceConfig {
     this.perPage,
     this.enabled = true,
     this.sourceType = SourceType.html,
+    this.requiresKeyword = true,
+    this.jsonListKey,
+    this.jsonFieldMapping,
   });
 
   /// 默认请求 UA（部分图源会拦截 Dart 默认 UA）。
@@ -67,6 +70,15 @@ class SourceConfig {
   /// 图源接口类型（默认 [SourceType.html]，现有配置与测试零改动）。
   final SourceType sourceType;
 
+  /// 搜索是否要求非空关键词（默认 true；推荐流等无需关键词的图源置 false）。
+  final bool requiresKeyword;
+
+  /// JSON 响应中图片列表所在的键（默认 null，解析器沿用 'posts' 兼容）。
+  final String? jsonListKey;
+
+  /// JSON 字段映射：解析器标准键 → 响应键（如 {'file_url': 'link'}）。
+  final Map<String, String>? jsonFieldMapping;
+
   /// 序列化为 JSON 对象（供自定义图源持久化；内置图源不参与）。
   Map<String, Object?> toJson() => <String, Object?>{
         'id': id,
@@ -80,6 +92,9 @@ class SourceConfig {
         'perPage': perPage,
         'enabled': enabled,
         'sourceType': sourceType.name,
+        'requiresKeyword': requiresKeyword,
+        'jsonListKey': jsonListKey,
+        'jsonFieldMapping': jsonFieldMapping,
       };
 
   /// 从 JSON 对象恢复；缺失字段取默认值。
@@ -100,6 +115,10 @@ class SourceConfig {
           (SourceType t) => t.name == json['sourceType'],
           orElse: () => SourceType.html,
         ),
+        requiresKeyword: json['requiresKeyword'] as bool? ?? true,
+        jsonListKey: json['jsonListKey'] as String?,
+        jsonFieldMapping: (json['jsonFieldMapping'] as Map<String, Object?>?)
+            ?.map((String k, Object? v) => MapEntry<String, String>(k, '$v')),
       );
 }
 

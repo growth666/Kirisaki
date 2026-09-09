@@ -1,9 +1,9 @@
 /// 图片保存结果：成功或携带可展示的错误信息（风格对齐 SourceParseResult）。
 class ImageSaveResult {
-  const ImageSaveResult._({this.errorMessage});
+  const ImageSaveResult._({this.errorMessage, this.message});
 
-  /// 保存成功。
-  const ImageSaveResult.success() : this._();
+  /// 保存成功（[message] 为可选附加提示，如"已在新标签页打开"）。
+  const ImageSaveResult.success({String? message}) : this._(message: message);
 
   /// 保存失败，[errorMessage] 为可直接展示给用户的中文提示。
   const ImageSaveResult.failure(String errorMessage)
@@ -11,6 +11,9 @@ class ImageSaveResult {
 
   /// 错误信息（成功时为 null）。
   final String? errorMessage;
+
+  /// 成功时的附加提示（可选）。
+  final String? message;
 
   /// 是否保存成功。
   bool get isSuccess => errorMessage == null;

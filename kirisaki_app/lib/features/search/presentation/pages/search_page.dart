@@ -11,10 +11,13 @@ import '../widgets/thumbnail_image.dart';
 
 /// 搜索页：关键词搜索 + 瀑布流图片列表 + 上拉分页。
 class SearchPage extends StatefulWidget {
-  const SearchPage({super.key, this.service});
+  const SearchPage({super.key, this.service, this.autoLoadRecommend = true});
 
   /// 注入解析服务（测试用），默认使用真实网络。
   final SourceParseService? service;
+
+  /// 是否默认进入自动加载推荐流（测试可关闭以保持既有行为）。
+  final bool autoLoadRecommend;
 
   @override
   State<SearchPage> createState() => _SearchPageState();
@@ -40,12 +43,21 @@ class _SearchPageState extends State<SearchPage> {
   String? _error; // 首页错误信息（非空时展示错误态）
   String? _lastKeyword; // 当前结果对应的关键词（分页复用）
   SourceConfig? _lastSource; // 当前结果对应的图源（分页复用）
+  bool _recommendMode = false; // 当前是否处于推荐流模式
+  bool _showBackToTop = false; // 回到顶部按钮可见性
+
+  /// 回到顶部按钮显示阈值（滚动偏移超过该值显示）。
+  static const double _backToTopThreshold = 600;
 
   @override
   void initState() {
     super.initState();
     _selectedSource = _sources.isNotEmpty ? _sources.first : null;
     _scrollController.addListener(_onScroll);
+    if (widget.autoLoadRecommend) {
+      // 默认进入自动加载推荐流（microtask 避开 initState 内 setState 限制）。
+      Future<void>.microtask(_loadRecommend);
+    }
   }
 
   @override
@@ -63,6 +75,12 @@ class _SearchPageState extends State<SearchPage> {
     // 避免滚到底部才触发加载造成等待。
     if (_scrollController.position.extentAfter < 400) {
       _loadMore();
+    }
+    // 回到顶部按钮：下滑超过阈值显示，到顶自动隐藏。
+    final bool show =
+        _scrollController.position.pixels > _backToTopThreshold;
+    if (show != _showBackToTop) {
+      setState(() => _showBackToTop = show);
     }
   }
 
@@ -91,6 +109,7 @@ class _SearchPageState extends State<SearchPage> {
       _hasMore = true;
       _lastKeyword = keyword;
       _lastSource = source;
+      _recommendMode = false; // 关键词搜索接管，退出推荐流模式
     });
     final SourceParseResult result =
         await _service.search(source, keyword: keyword, page: 1);
@@ -117,12 +136,16 @@ class _SearchPageState extends State<SearchPage> {
     }
     final SourceConfig? source = _lastSource;
     final String? keyword = _lastKeyword;
-    if (source == null || keyword == null) {
+    // 推荐流无关键词；其余图源必须有关键词才可分页。
+    if (source == null || (source.requiresKeyword && keyword == null)) {
       return;
     }
     setState(() => _loadingMore = true);
-    final SourceParseResult result =
-        await _service.search(source, keyword: keyword, page: _page + 1);
+    final SourceParseResult result = await _service.search(
+      source,
+      keyword: keyword ?? '',
+      page: _page + 1,
+    );
     if (!mounted) {
       return;
     }
@@ -146,6 +169,51 @@ class _SearchPageState extends State<SearchPage> {
     context.push(
       '/preview?url=${Uri.encodeComponent(item.imageUrl)}',
       extra: item,
+    );
+  }
+
+  /// 加载推荐流：无需关键词，复用现有状态机/三态/分页逻辑。
+  Future<void> _loadRecommend() async {
+    // 请求锁复用：加载中不重复触发。
+    if (_loading) {
+      return;
+    }
+    final SourceConfig config = BuiltinSources.recommend;
+    setState(() {
+      _loading = true;
+      _error = null;
+      _searched = true;
+      _recommendMode = true;
+      _items.clear();
+      _page = 1;
+      _hasMore = true;
+      _lastKeyword = null;
+      _lastSource = config;
+    });
+    final SourceParseResult result =
+        await _service.search(config, keyword: '');
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _loading = false;
+      if (result.isSuccess) {
+        _items.addAll(result.items);
+        _hasMore = result.items.isNotEmpty;
+      } else if (result.errorMessage == SourceParseService.noImagesMessage) {
+        _error = null; // 空态
+      } else {
+        _error = result.errorMessage;
+      }
+    });
+  }
+
+  /// 平滑滚动回到顶部；到顶后 _onScroll 自动隐藏按钮。
+  void _scrollToTop() {
+    _scrollController.animateTo(
+      0,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeOutCubic,
     );
   }
 
@@ -175,10 +243,70 @@ class _SearchPageState extends State<SearchPage> {
           ),
         ],
       ),
+      // 悬浮回到顶部按钮：下滑超过阈值显示，简洁小圆钮不遮挡内容。
+      floatingActionButton: _showBackToTop
+          ? FloatingActionButton.small(
+              tooltip: '回到顶部',
+              onPressed: _scrollToTop,
+              child: const Icon(Icons.keyboard_arrow_up),
+            )
+          : null,
       body: Column(
         children: [
-          _buildSearchBar(),
+          _buildFloatingHeader(),
           Expanded(child: _buildBody()),
+        ],
+      ),
+    );
+  }
+
+  /// 固定悬浮导航区：搜索区 + 分类栏，列表滚动时不随动。
+  Widget _buildFloatingHeader() {
+    final ThemeData theme = Theme.of(context);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x14000000),
+            blurRadius: 6,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          _buildSearchBar(),
+          _buildCategoryBar(),
+        ],
+      ),
+    );
+  }
+
+  /// 图片分类栏：推荐 + 各内置图源（横向滚动 chips）。
+  /// 高度自适应（不写死），避免窄视口下与搜索区叠加溢出。
+  Widget _buildCategoryBar() {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+      child: Row(
+        children: [
+          ChoiceChip(
+            label: const Text('推荐'),
+            selected: _recommendMode,
+            onSelected: (_) => _loadRecommend(),
+          ),
+          for (final SourceConfig source in _sources) ...[
+            const SizedBox(width: 8),
+            ChoiceChip(
+              label: Text(source.name),
+              selected: !_recommendMode && _selectedSource?.id == source.id,
+              onSelected: (_) {
+                // 仅同步下拉框选中图源，不自动搜索（保持原图源选择逻辑）。
+                setState(() => _selectedSource = source);
+              },
+            ),
+          ],
         ],
       ),
     );
@@ -284,6 +412,9 @@ class _SearchPageState extends State<SearchPage> {
                   return _ImageCard(
                     item: item,
                     onTap: () => _openPreview(item),
+                    // 推荐流图源国内可直连（接口带 CORS 头），不走代理；
+                    // 关键词搜索的海外图源保持代理。
+                    useProxy: !_recommendMode,
                   );
                 },
               ),
@@ -323,10 +454,17 @@ class _SearchPageState extends State<SearchPage> {
 
 /// 瀑布流图片卡片：缩略图 + 标签。
 class _ImageCard extends StatelessWidget {
-  const _ImageCard({required this.item, required this.onTap});
+  const _ImageCard({
+    required this.item,
+    required this.onTap,
+    this.useProxy = true,
+  });
 
   final ImageItem item;
   final VoidCallback onTap;
+
+  /// 缩略图是否走 Web 代理（推荐流等直连图源传 false）。
+  final bool useProxy;
 
   @override
   Widget build(BuildContext context) {
@@ -352,7 +490,7 @@ class _ImageCard extends StatelessWidget {
               constraints: const BoxConstraints(minHeight: 140),
               child: AspectRatio(
                 aspectRatio: aspectRatio,
-                child: ThumbnailImage(url: thumbnail),
+                child: ThumbnailImage(url: thumbnail, useProxy: useProxy),
               ),
             ),
             if (item.tags.isNotEmpty)
@@ -379,6 +517,7 @@ class _ImageCard extends StatelessWidget {
 }
 
 /// 居中图标 + 文案提示（初始提示 / 空态）。
+/// 内容外包 SingleChildScrollView：窄视口/小窗下可滚动，避免溢出。
 class _HintView extends StatelessWidget {
   const _HintView({required this.icon, required this.message});
 
@@ -389,23 +528,27 @@ class _HintView extends StatelessWidget {
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
     return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 64, color: theme.colorScheme.outline),
-          const SizedBox(height: 12),
-          Text(
-            message,
-            style: theme.textTheme.bodyMedium
-                ?.copyWith(color: theme.colorScheme.outline),
-          ),
-        ],
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 64, color: theme.colorScheme.outline),
+            const SizedBox(height: 12),
+            Text(
+              message,
+              style: theme.textTheme.bodyMedium
+                  ?.copyWith(color: theme.colorScheme.outline),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
 /// 错误态：图标 + 错误信息 + 重试按钮。
+/// 内容外包 SingleChildScrollView：窄视口/小窗下可滚动，避免溢出。
 class _ErrorView extends StatelessWidget {
   const _ErrorView({required this.message, required this.onRetry});
 
@@ -416,26 +559,33 @@ class _ErrorView extends StatelessWidget {
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
     return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.wifi_off_outlined, size: 64, color: theme.colorScheme.error),
-          const SizedBox(height: 12),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 32),
-            child: Text(
-              message,
-              textAlign: TextAlign.center,
-              style: theme.textTheme.bodyMedium,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.wifi_off_outlined,
+              size: 64,
+              color: theme.colorScheme.error,
             ),
-          ),
-          const SizedBox(height: 16),
-          FilledButton.tonalIcon(
-            onPressed: onRetry,
-            icon: const Icon(Icons.refresh),
-            label: const Text('重试'),
-          ),
-        ],
+            const SizedBox(height: 12),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 32),
+              child: Text(
+                message,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodyMedium,
+              ),
+            ),
+            const SizedBox(height: 16),
+            FilledButton.tonalIcon(
+              onPressed: onRetry,
+              icon: const Icon(Icons.refresh),
+              label: const Text('重试'),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -81,6 +81,22 @@ void main() {
     expect(find.text('未找到图片信息'), findsOneWidget);
   });
 
+  testWidgets('下载按钮在非 Web 平台提示暂不支持（stub 分支）', (WidgetTester tester) async {
+    const ImageItem item = ImageItem(
+      imageUrl: 'https://example.test/image/a.jpg',
+    );
+    await tester.pumpWidget(
+      const MaterialApp(home: ImagePreviewPage(item: item)),
+    );
+    await tester.pump();
+
+    await tester.tap(find.byIcon(Icons.download_outlined));
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.textContaining('当前平台不支持浏览器下载'), findsOneWidget);
+  });
+
   testWidgets('收藏按钮切换与状态实时同步', (WidgetTester tester) async {
     SharedPreferencesAsyncPlatform.instance =
         InMemorySharedPreferencesAsync.empty();

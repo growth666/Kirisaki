@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/gestures.dart' show PointerScrollEvent, PointerSignalEvent;
 import 'package:flutter/material.dart';
 
+import '../../../../core/download/image_downloader.dart';
 import '../../../../core/favorite/favorite_service.dart';
 import '../../../../core/source/image_item.dart';
 import '../../../../core/source/source_parse_service.dart';
@@ -64,6 +65,8 @@ class ImagePreviewPage extends StatelessWidget {
       appBar: AppBar(
         title: const Text('图片预览'),
         actions: [
+          // 下载入口：所有图片（含推荐流）通用，走平台下载服务。
+          if (resolved != null) _DownloadButton(item: resolved),
           if (resolved != null)
             _FavoriteButton(
               item: resolved,
@@ -74,6 +77,35 @@ class ImagePreviewPage extends StatelessWidget {
       body: resolved == null
           ? const _MissingView()
           : _PreviewBody(item: resolved),
+    );
+  }
+}
+
+/// 下载按钮：调用平台下载服务（Web 浏览器下载 / 其他平台 stub）。
+class _DownloadButton extends StatelessWidget {
+  const _DownloadButton({required this.item});
+
+  final ImageItem item;
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      tooltip: '下载',
+      icon: const Icon(Icons.download_outlined),
+      onPressed: () async {
+        final ImageSaveResult result = await createImageDownloadService()
+            .saveImage(imageUrl: item.imageUrl);
+        if (!context.mounted) {
+          return;
+        }
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(SnackBar(
+            content: Text(
+              result.isSuccess ? (result.message ?? '已开始下载') : result.errorMessage!,
+            ),
+          ));
+      },
     );
   }
 }

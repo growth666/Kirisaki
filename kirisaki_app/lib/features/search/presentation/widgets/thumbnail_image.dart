@@ -21,9 +21,10 @@ class ThumbnailImage extends StatefulWidget {
     required this.url,
     this.client,
     this.cache,
+    this.useProxy = true,
   });
 
-  /// 原始缩略图地址（组件内部按全局代理开关转换为最终请求 URL）。
+  /// 原始缩略图地址（按 [useProxy] 决定是否经全局代理开关转换）。
   final String url;
 
   /// 注入的 HTTP client（测试用），默认使用真实 client。
@@ -31,6 +32,10 @@ class ThumbnailImage extends StatefulWidget {
 
   /// 注入的缓存实例（测试用），默认使用全局单例。
   final ThumbnailMemoryCache? cache;
+
+  /// Web 端是否走 CORS 代理（默认 true 沿用全局开关语义；
+  /// 国内可直连的图源（如推荐流）传 false 直连）。
+  final bool useProxy;
 
   @override
   State<ThumbnailImage> createState() => _ThumbnailImageState();
@@ -60,7 +65,8 @@ class _ThumbnailImageState extends State<ThumbnailImage> {
   }
 
   Future<void> _load() async {
-    final String key = _displayUrl(widget.url);
+    final String key =
+        widget.useProxy ? _displayUrl(widget.url) : widget.url;
     // 命中内存缓存：直接展示，不发请求。
     final Uint8List? cached = _cache.get(key);
     if (cached != null) {

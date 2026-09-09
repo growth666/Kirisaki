@@ -9,8 +9,12 @@ void main() {
     await tester.pumpWidget(const KirisakiApp());
     await tester.pump();
 
-    expect(find.text('输入关键词，搜索二次元图片'), findsOneWidget);
+    // 首页默认自动加载推荐流，初始提示已不存在；
+    // 断言与加载状态无关的结构内容。
     expect(find.byKey(const Key('searchInput')), findsOneWidget);
+    expect(find.text('推荐'), findsOneWidget);
+    expect(find.byIcon(Icons.tune), findsOneWidget);
+    expect(find.byIcon(Icons.favorite_border), findsOneWidget);
   });
 
   testWidgets('可导航到图源管理页', (WidgetTester tester) async {
