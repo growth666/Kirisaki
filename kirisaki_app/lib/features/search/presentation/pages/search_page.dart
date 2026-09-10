@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/profile/search_history_service.dart';
 import '../../../../core/source/builtin_sources.dart';
 import '../../../../core/source/image_item.dart';
 import '../../../../core/source/source_config.dart';
@@ -23,11 +24,16 @@ class SearchPage extends StatefulWidget {
   State<SearchPage> createState() => _SearchPageState();
 }
 
-class _SearchPageState extends State<SearchPage> {
+class _SearchPageState extends State<SearchPage>
+    with AutomaticKeepAliveClientMixin {
   late final SourceParseService _service =
       widget.service ?? SourceParseService();
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+
+  /// PageView 底部导航切换时保活：不重建、不丢滚动位置。
+  @override
+  bool get wantKeepAlive => true;
 
   // 只列启用的图源；禁用图源不参与搜索（图源管理后续轮次动态维护 enabled）。
   final List<SourceConfig> _sources =
@@ -58,13 +64,27 @@ class _SearchPageState extends State<SearchPage> {
       // 默认进入自动加载推荐流（microtask 避开 initState 内 setState 限制）。
       Future<void>.microtask(_loadRecommend);
     }
+    // 监听搜索历史快速搜索事件（搜索历史页点击条目触发）。
+    SearchHistoryService.instance.addListener(_onHistoryQuickSearch);
   }
 
   @override
   void dispose() {
+    SearchHistoryService.instance.removeListener(_onHistoryQuickSearch);
     _scrollController.dispose();
     _searchController.dispose();
     super.dispose();
+  }
+
+  /// 搜索历史页点击条目 → 填入关键词并立即执行搜索。
+  void _onHistoryQuickSearch() {
+    final String? keyword = SearchHistoryService.instance.selectedKeyword;
+    if (keyword == null) {
+      return;
+    }
+    SearchHistoryService.instance.consumeSelection();
+    _searchController.text = keyword;
+    _search();
   }
 
   void _onScroll() {
@@ -127,6 +147,10 @@ class _SearchPageState extends State<SearchPage> {
         _error = result.errorMessage;
       }
     });
+    // 搜索成功（关键词图源）后记录搜索历史（去重保留最新，持久化容错）。
+    if (result.isSuccess) {
+      SearchHistoryService.instance.add(keyword);
+    }
   }
 
   Future<void> _loadMore() async {
@@ -225,6 +249,7 @@ class _SearchPageState extends State<SearchPage> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return Scaffold(
       appBar: AppBar(
         title: const Text('搜图'),
@@ -234,12 +259,6 @@ class _SearchPageState extends State<SearchPage> {
             tooltip: '图源管理',
             icon: const Icon(Icons.tune),
             onPressed: () => context.push('/sources'),
-          ),
-          // 收藏页入口（纯追加，不影响既有搜索逻辑）。
-          IconButton(
-            tooltip: '我的收藏',
-            icon: const Icon(Icons.favorite_border),
-            onPressed: () => context.push('/favorites'),
           ),
         ],
       ),

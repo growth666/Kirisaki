@@ -45,4 +45,11 @@ class CustomSourceStore {
         jsonEncode(sources.map((SourceConfig s) => s.toJson()).toList());
     await _preferences.setString(storageKey, raw);
   }
+
+  /// 按 [id] 删除自定义图源并持久化。
+  Future<void> removeById(String id) async {
+    final List<SourceConfig> sources = await load();
+    sources.removeWhere((SourceConfig s) => s.id == id);
+    await save(sources);
+  }
 }

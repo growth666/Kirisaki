@@ -3,7 +3,13 @@ import 'package:go_router/go_router.dart';
 
 import '../../features/favorite/presentation/pages/favorites_page.dart';
 import '../../features/preview/presentation/pages/image_preview_page.dart';
-import '../../features/search/presentation/pages/search_page.dart';
+import '../../features/profile/presentation/pages/browse_history_page.dart';
+import '../../features/profile/presentation/pages/download_records_page.dart';
+import '../../features/profile/presentation/pages/search_history_page.dart';
+import '../../features/settings/presentation/pages/about_page.dart';
+import '../../features/settings/presentation/pages/settings_page.dart';
+import '../../features/shell/presentation/pages/home_shell.dart';
+import '../../features/source/presentation/pages/custom_sources_page.dart';
 import '../../features/source/presentation/pages/source_import_page.dart';
 import '../../features/source/presentation/pages/source_manage_page.dart';
 import '../constants/app_constants.dart';
@@ -18,7 +24,7 @@ final GoRouter appRouter = GoRouter(
       path: RouteNames.search,
       name: 'search',
       builder: (BuildContext context, GoRouterState state) =>
-          const SearchPage(),
+          const HomeShell(),
     ),
     GoRoute(
       path: RouteNames.sources,
@@ -51,6 +57,42 @@ final GoRouter appRouter = GoRouter(
       name: 'sourceImport',
       builder: (BuildContext context, GoRouterState state) =>
           const SourceImportPage(),
+    ),
+    GoRoute(
+      path: RouteNames.history,
+      name: 'history',
+      builder: (BuildContext context, GoRouterState state) =>
+          const BrowseHistoryPage(),
+    ),
+    GoRoute(
+      path: RouteNames.searchHistory,
+      name: 'searchHistory',
+      builder: (BuildContext context, GoRouterState state) =>
+          const SearchHistoryPage(),
+    ),
+    GoRoute(
+      path: RouteNames.downloads,
+      name: 'downloads',
+      builder: (BuildContext context, GoRouterState state) =>
+          const DownloadRecordsPage(),
+    ),
+    GoRoute(
+      path: RouteNames.mySources,
+      name: 'mySources',
+      builder: (BuildContext context, GoRouterState state) =>
+          const CustomSourcesPage(),
+    ),
+    GoRoute(
+      path: RouteNames.settings,
+      name: 'settings',
+      builder: (BuildContext context, GoRouterState state) =>
+          const SettingsPage(),
+    ),
+    GoRoute(
+      path: RouteNames.about,
+      name: 'about',
+      builder: (BuildContext context, GoRouterState state) =>
+          const AboutPage(),
     ),
   ],
 );

@@ -14,4 +14,22 @@ abstract final class RouteNames {
 
   /// 图源导入页。
   static const String sourceImport = '/sources/import';
+
+  /// 浏览历史页。
+  static const String history = '/history';
+
+  /// 搜索历史页。
+  static const String searchHistory = '/search_history';
+
+  /// 下载记录页。
+  static const String downloads = '/downloads';
+
+  /// 我的图源页。
+  static const String mySources = '/my_sources';
+
+  /// 设置页。
+  static const String settings = '/settings';
+
+  /// 关于页。
+  static const String about = '/about';
 }

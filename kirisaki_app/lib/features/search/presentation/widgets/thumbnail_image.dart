@@ -55,6 +55,19 @@ class _ThumbnailImageState extends State<ThumbnailImage> {
     _load();
   }
 
+  @override
+  void didUpdateWidget(covariant ThumbnailImage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // 列表项复用（如收藏页新收藏导致整体移位）时 url 变化，
+    // 必须重置图片字节并重新加载，否则会显示上一项的旧图。
+    if (oldWidget.url != widget.url ||
+        oldWidget.useProxy != widget.useProxy) {
+      _bytes = null;
+      _failed = false;
+      _load();
+    }
+  }
+
   /// Web 端缩略图走全局 CORS 代理（与搜索请求一致），原生平台直连。
   /// 该开关与 SourceParseService.webCorsProxyEnabled 保持一致。
   static String _displayUrl(String url) {

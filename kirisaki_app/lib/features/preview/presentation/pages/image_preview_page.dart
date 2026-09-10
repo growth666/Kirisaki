@@ -7,6 +7,8 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/download/image_downloader.dart';
 import '../../../../core/favorite/favorite_service.dart';
+import '../../../../core/profile/download_service.dart';
+import '../../../../core/profile/history_service.dart';
 import '../../../../core/source/image_item.dart';
 import '../../../../core/source/source_parse_service.dart';
 
@@ -95,6 +97,10 @@ class _DownloadButton extends StatelessWidget {
       onPressed: () async {
         final ImageSaveResult result = await createImageDownloadService()
             .saveImage(imageUrl: item.imageUrl);
+        // 下载成功自动记录到下载记录（持久化静默容错）。
+        if (result.isSuccess) {
+          DownloadService.instance.record(item);
+        }
         if (!context.mounted) {
           return;
         }
@@ -168,6 +174,13 @@ class _PreviewBodyState extends State<_PreviewBody> {
   /// 缩放/平移变换控制器（双指缩放与滚轮缩放共用）。
   final TransformationController _transformationController =
       TransformationController();
+
+  @override
+  void initState() {
+    super.initState();
+    // 每次打开大图预览自动记录浏览历史（去重保留最新，持久化静默容错）。
+    HistoryService.instance.record(widget.item);
+  }
 
   @override
   void dispose() {

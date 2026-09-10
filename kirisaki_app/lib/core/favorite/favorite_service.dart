@@ -64,5 +64,27 @@ class FavoriteService extends ChangeNotifier {
     await _persist();
   }
 
+  /// 批量取消收藏（长按多选删除用）；全部不存在时无操作。
+  Future<void> removeAll(Iterable<String> imageUrls) async {
+    final Set<String> urls = imageUrls.toSet();
+    final int before = _items.length;
+    _items.removeWhere((ImageItem item) => urls.contains(item.imageUrl));
+    if (_items.length == before) {
+      return;
+    }
+    notifyListeners();
+    await _persist();
+  }
+
+  /// 清空全部收藏（设置页"清空本地数据"用），一次持久化。
+  Future<void> clearAll() async {
+    if (_items.isEmpty) {
+      return;
+    }
+    _items.clear();
+    notifyListeners();
+    await _persist();
+  }
+
   Future<void> _persist() => _ensureStore.save(_items);
 }

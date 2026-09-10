@@ -27,20 +27,22 @@ abstract final class BuiltinSources {
   /// **不加入 [all]**（不出现在搜索下拉框），仅供推荐流使用，
   /// 不影响原有图源选择逻辑。
   ///
-  /// 接口实测：`https://t.alcy.cc/json?pc=N`（带尾斜杠免 301 跳转），
-  /// 返回 `{"data":[{"link":"https://..."}]}` —— 列表键 `data`、地址字段 `link`。
+  /// 接口实测：`https://t.alcy.cc/json?pc=N`（**注意无尾斜杠**——
+  /// 源站改版后 `/json/` 路由返回 404，无斜杠路径直接 200），
+  /// 返回 `{"data":[{"link":"https://t.alcy.cc/pic/..."}]}`
+  /// —— 列表键 `data`、地址字段 `link`（图片与 API 同源，国内可直连）。
   /// `perPage` 即 `pc` 参数（每次返回张数），可按主页列数调整。
   /// 上拉分页 = 再次请求随机接口追加新图（接口每次随机返回，天然"下滑更新"）。
   ///
   /// 注意：接口域名带 `Access-Control-Allow-Origin: *`，国内可直连，
   /// 故 `useWebCorsProxy: false` 跳过代理（Web 端 fetch 无 CORS 问题）；
-  /// 但图片域名 tc.alcy.cc 不带 CORS 头，Web 端缩略图仍受浏览器限制，
-  /// 桌面/移动端直连可完整显示。
+  /// 图片同样位于 t.alcy.cc（同源），但响应不带 CORS 头，
+  /// Web 端缩略图仍受浏览器限制，桌面/移动端直连可完整显示。
   static final SourceConfig recommend = SourceConfig(
     id: 'alcy_recommend',
     name: '推荐',
     baseUrl: 'https://t.alcy.cc',
-    searchUrlTemplate: '/json/?pc={limit}',
+    searchUrlTemplate: '/json?pc={limit}',
     perPage: 18,
     enabled: true,
     useWebCorsProxy: false,
