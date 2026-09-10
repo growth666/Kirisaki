@@ -116,19 +116,50 @@ class _DownloadButton extends StatelessWidget {
   }
 }
 
-/// 收藏/取消收藏按钮：监听收藏服务，图标状态实时同步。
-class _FavoriteButton extends StatelessWidget {
+/// 收藏/取消收藏按钮：每按钮独立 ValueNotifier 局部刷新——
+/// 收藏状态变化只重建本按钮，不随全局 service 通知触发无关重建。
+class _FavoriteButton extends StatefulWidget {
   const _FavoriteButton({required this.item, required this.service});
 
   final ImageItem item;
   final FavoriteService service;
 
   @override
+  State<_FavoriteButton> createState() => _FavoriteButtonState();
+}
+
+class _FavoriteButtonState extends State<_FavoriteButton> {
+  /// 本图片的收藏状态（独立于全局服务通知）。
+  late final ValueNotifier<bool> _favorited = ValueNotifier<bool>(
+    widget.service.contains(widget.item.imageUrl),
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    widget.service.addListener(_onServiceChanged);
+  }
+
+  @override
+  void dispose() {
+    widget.service.removeListener(_onServiceChanged);
+    _favorited.dispose();
+    super.dispose();
+  }
+
+  /// 仅当本图片收藏状态实际变化时更新 notifier，避免无关重建。
+  void _onServiceChanged() {
+    final bool value = widget.service.contains(widget.item.imageUrl);
+    if (value != _favorited.value) {
+      _favorited.value = value;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return ListenableBuilder(
-      listenable: service,
-      builder: (BuildContext context, Widget? child) {
-        final bool favorited = service.contains(item.imageUrl);
+    return ValueListenableBuilder<bool>(
+      valueListenable: _favorited,
+      builder: (BuildContext context, bool favorited, Widget? child) {
         return IconButton(
           tooltip: favorited ? '取消收藏' : '收藏',
           icon: Icon(
@@ -137,12 +168,12 @@ class _FavoriteButton extends StatelessWidget {
           ),
           onPressed: () async {
             if (favorited) {
-              await service.remove(item.imageUrl);
+              await widget.service.remove(widget.item.imageUrl);
               if (context.mounted) {
                 _showSnackBar(context, '已取消收藏');
               }
             } else {
-              await service.add(item);
+              await widget.service.add(widget.item);
               if (context.mounted) {
                 _showSnackBar(context, '已收藏');
               }

@@ -29,6 +29,17 @@
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
 
+  <!--
+    二次元字体（在线引入，不打包字体文件、不增加包体积）：
+    - Noto Sans SC：思源黑体在线版，正文/常规文字（"思源柔黑体系"）
+    - ZCOOL KuaiLe：站酷快乐体，标题/强调文字
+    当前使用国内镜像 loli.net（Google Fonts 镜像）；海外部署可换回
+    fonts.googleapis.com 官方源。非 Web 平台不受此配置影响（走系统字体栈）。
+  -->
+  <link rel="preconnect" href="https://fonts.loli.net">
+  <link rel="preconnect" href="https://gstatic.loli.net" crossorigin>
+  <link href="https://fonts.loli.net/css2?family=Noto+Sans+SC:wght@400;500;700&family=ZCOOL+KuaiLe&display=swap" rel="stylesheet">
+
   <title>kirisaki_app</title>
   <link rel="manifest" href="manifest.json">
 </head>

@@ -427,4 +427,55 @@ void main() {
 
     expect(find.byType(FloatingActionButton), findsNothing);
   });
+
+  testWidgets('从预览返回后列表不重建、滚动位置保留', (WidgetTester tester) async {
+    await tester.binding.setSurfaceSize(const Size(400, 300));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final SourceParseService service = SourceParseService(
+      client: MockClient((http.Request request) async {
+        return http.Response(_alcyMany, 200);
+      }),
+    );
+    await tester.pumpWidget(
+      MaterialApp.router(
+        routerConfig: _testRouter(service, autoLoadRecommend: true),
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
+
+    // 滚动一段距离。
+    await tester.drag(find.byType(CustomScrollView), const Offset(0, -400));
+    await tester.pump();
+
+    final ScrollableState scrollable = tester.state<ScrollableState>(
+      find.descendant(
+        of: find.byType(CustomScrollView),
+        matching: find.byType(Scrollable),
+      ),
+    );
+    final double offsetBefore = scrollable.position.pixels;
+    expect(offsetBefore, greaterThan(0));
+
+    // 打开预览再返回。
+    await tester.tap(find.byType(Card).first);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(find.text('图片预览'), findsOneWidget);
+
+    await tester.tap(find.byType(BackButton));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+
+    // 返回后滚动位置保留（保活：列表未重建）。
+    final ScrollableState after = tester.state<ScrollableState>(
+      find.descendant(
+        of: find.byType(CustomScrollView),
+        matching: find.byType(Scrollable),
+      ),
+    );
+    expect(after.position.pixels, offsetBefore);
+    expect(identical(scrollable, after), isTrue);
+  });
 }

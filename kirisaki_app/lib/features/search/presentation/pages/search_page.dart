@@ -50,7 +50,10 @@ class _SearchPageState extends State<SearchPage>
   String? _lastKeyword; // 当前结果对应的关键词（分页复用）
   SourceConfig? _lastSource; // 当前结果对应的图源（分页复用）
   bool _recommendMode = false; // 当前是否处于推荐流模式
-  bool _showBackToTop = false; // 回到顶部按钮可见性
+
+  /// 回到顶部按钮可见性（ValueNotifier 局部刷新：滚动只更新该值，
+  /// 不触发整页 setState）。
+  final ValueNotifier<bool> _showBackToTopNotifier = ValueNotifier<bool>(false);
 
   /// 回到顶部按钮显示阈值（滚动偏移超过该值显示）。
   static const double _backToTopThreshold = 600;
@@ -71,6 +74,7 @@ class _SearchPageState extends State<SearchPage>
   @override
   void dispose() {
     SearchHistoryService.instance.removeListener(_onHistoryQuickSearch);
+    _showBackToTopNotifier.dispose();
     _scrollController.dispose();
     _searchController.dispose();
     super.dispose();
@@ -97,10 +101,11 @@ class _SearchPageState extends State<SearchPage>
       _loadMore();
     }
     // 回到顶部按钮：下滑超过阈值显示，到顶自动隐藏。
+    // 仅更新 ValueNotifier，不触发整页 setState。
     final bool show =
         _scrollController.position.pixels > _backToTopThreshold;
-    if (show != _showBackToTop) {
-      setState(() => _showBackToTop = show);
+    if (show != _showBackToTopNotifier.value) {
+      _showBackToTopNotifier.value = show;
     }
   }
 
@@ -262,14 +267,24 @@ class _SearchPageState extends State<SearchPage>
           ),
         ],
       ),
-      // 悬浮回到顶部按钮：下滑超过阈值显示，简洁小圆钮不遮挡内容。
-      floatingActionButton: _showBackToTop
-          ? FloatingActionButton.small(
-              tooltip: '回到顶部',
-              onPressed: _scrollToTop,
-              child: const Icon(Icons.keyboard_arrow_up),
-            )
-          : null,
+      // 悬浮回到顶部按钮：ValueListenableBuilder 局部包裹，
+      // 显隐只重建按钮本身；纯色半透明、无模糊混合。
+      floatingActionButton: ValueListenableBuilder<bool>(
+        valueListenable: _showBackToTopNotifier,
+        builder: (BuildContext context, bool show, Widget? child) {
+          if (!show) {
+            return const SizedBox.shrink();
+          }
+          final ColorScheme colorScheme = Theme.of(context).colorScheme;
+          return FloatingActionButton.small(
+            tooltip: '回到顶部',
+            backgroundColor: colorScheme.primary.withValues(alpha: 0.85),
+            foregroundColor: colorScheme.onPrimary,
+            onPressed: _scrollToTop,
+            child: const Icon(Icons.keyboard_arrow_up),
+          );
+        },
+      ),
       body: Column(
         children: [
           _buildFloatingHeader(),
@@ -280,6 +295,7 @@ class _SearchPageState extends State<SearchPage>
   }
 
   /// 固定悬浮导航区：搜索区 + 分类栏，列表滚动时不随动。
+  /// 纯色背景（不透明 surface，无半透明效果）+ 极淡底部阴影（5% alpha）。
   Widget _buildFloatingHeader() {
     final ThemeData theme = Theme.of(context);
     return DecoratedBox(
@@ -287,9 +303,9 @@ class _SearchPageState extends State<SearchPage>
         color: theme.colorScheme.surface,
         boxShadow: const [
           BoxShadow(
-            color: Color(0x14000000),
-            blurRadius: 6,
-            offset: Offset(0, 2),
+            color: Color(0x0D000000),
+            blurRadius: 4,
+            offset: Offset(0, 1),
           ),
         ],
       ),
@@ -338,6 +354,7 @@ class _SearchPageState extends State<SearchPage>
       child: Row(
         children: [
           Expanded(
+            // 输入由 TextEditingController 局部管理，不触发整页 setState。
             child: TextField(
               key: const Key('searchInput'),
               controller: _searchController,
