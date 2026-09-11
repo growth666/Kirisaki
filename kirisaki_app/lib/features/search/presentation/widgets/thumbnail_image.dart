@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 import '../../../../core/cache/thumbnail_memory_cache.dart';
+import '../../../../core/network/http_client_factory.dart';
 import '../../../../core/source/source_parse_service.dart';
 
 /// 带内存缓存的缩略图组件。
@@ -42,7 +43,7 @@ class ThumbnailImage extends StatefulWidget {
 }
 
 class _ThumbnailImageState extends State<ThumbnailImage> {
-  late final http.Client _client = widget.client ?? http.Client();
+  late final http.Client _client = widget.client ?? buildClient();
   late final ThumbnailMemoryCache _cache =
       widget.cache ?? ThumbnailMemoryCache.instance;
 

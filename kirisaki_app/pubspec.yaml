@@ -20,6 +20,10 @@ dependencies:
   html: ^0.15.7
   # Web 平台 API（浏览器下载实现用，规避已废弃的 dart:html）
   web: ^1.1.1
+  # 系统目录获取（桌面端下载实现用）
+  path_provider: ^2.1.6
+  # 桌面端目录选择器（下载位置自选用）
+  file_selector: ^1.1.0
   # 网络图片加载与缓存
   cached_network_image: ^3.4.1
   # 瀑布流网格布局

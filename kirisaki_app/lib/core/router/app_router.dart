@@ -7,6 +7,7 @@ import '../../features/profile/presentation/pages/browse_history_page.dart';
 import '../../features/profile/presentation/pages/download_records_page.dart';
 import '../../features/profile/presentation/pages/search_history_page.dart';
 import '../../features/settings/presentation/pages/about_page.dart';
+import '../../features/settings/presentation/pages/proxy_settings_page.dart';
 import '../../features/settings/presentation/pages/settings_page.dart';
 import '../../features/shell/presentation/pages/home_shell.dart';
 import '../../features/source/presentation/pages/custom_sources_page.dart';
@@ -97,6 +98,12 @@ final GoRouter appRouter = GoRouter(
       name: 'about',
       pageBuilder: (BuildContext context, GoRouterState state) =>
           fadePage(const AboutPage()),
+    ),
+    GoRoute(
+      path: RouteNames.proxy,
+      name: 'proxy',
+      pageBuilder: (BuildContext context, GoRouterState state) =>
+          fadePage(const ProxySettingsPage()),
     ),
   ],
 );

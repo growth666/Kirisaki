@@ -31,4 +31,24 @@ void main() {
     await service.setThemeMode(ThemeMode.light);
     expect(notified, 1);
   });
+
+  test('下载位置持久化往返与重置', () async {
+    final SettingsService service = SettingsService();
+    expect(service.downloadDir, isNull); // 默认系统目录
+
+    await service.setDownloadDir('D:/MyDownloads');
+    expect(service.downloadDir, 'D:/MyDownloads');
+
+    // 重启恢复。
+    final SettingsService restarted = SettingsService();
+    await restarted.load();
+    expect(restarted.downloadDir, 'D:/MyDownloads');
+
+    await restarted.resetDownloadDir();
+    expect(restarted.downloadDir, isNull);
+
+    final SettingsService restarted2 = SettingsService();
+    await restarted2.load();
+    expect(restarted2.downloadDir, isNull);
+  });
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/cache/thumbnail_memory_cache.dart';
+import '../../../../core/download/download_dir_picker.dart';
 import '../../../../core/favorite/favorite_service.dart';
 import '../../../../core/profile/download_service.dart';
 import '../../../../core/profile/history_service.dart';
@@ -63,6 +64,43 @@ class _SettingsPageState extends State<SettingsPage> {
     }
   }
 
+  /// 下载位置当前状态描述（各平台语义）。
+  String _downloadDirDescription() {
+    final String? dir = _settings.downloadDir;
+    if (dir == null) {
+      // Web 端：下载时弹系统保存对话框自选位置；
+      // 原生端：系统默认下载目录。
+      return '系统默认（Web 下载时弹保存对话框自选位置）';
+    }
+    // Android SAF tree URI 不友好，显示说明文字。
+    if (dir.startsWith('content://')) {
+      return '已选自定义目录';
+    }
+    // 桌面路径过长时截断显示。
+    return dir.length > 40 ? '${dir.substring(0, 40)}…' : dir;
+  }
+
+  /// 弹出平台目录选择器并持久化（取消不报错）。
+  Future<void> _changeDownloadDir() async {
+    final String? picked = await pickDownloadDirectory();
+    if (!mounted) {
+      return;
+    }
+    if (picked == null) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(const SnackBar(content: Text('未选择目录')));
+      return;
+    }
+    await _settings.setDownloadDir(picked);
+    if (!mounted) {
+      return;
+    }
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(const SnackBar(content: Text('下载位置已更新')));
+  }
+
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
@@ -75,15 +113,26 @@ class _SettingsPageState extends State<SettingsPage> {
             children: [
               // —— 下载设置 ——
               const _GroupHeader('下载设置'),
-              const ListTile(
-                enabled: false, // Web 端下载位置由浏览器控制 → 置灰
-                leading: Icon(Icons.folder_outlined),
-                title: Text('下载位置'),
-                subtitle: Text('由浏览器默认下载目录控制'),
-                trailing: Icon(Icons.lock_outline),
+              ListTile(
+                leading: const Icon(Icons.folder_outlined),
+                title: const Text('下载位置'),
+                subtitle: Text(_downloadDirDescription()),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: _changeDownloadDir,
               ),
-              // 注：移动端"保存位置选择"能力由 ImageSaveService 抽象接口
-              // 预留，具体存储实现后续轮次接入（不新增 Android 专属代码）。
+              if (_settings.downloadDir != null)
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: Padding(
+                    padding: const EdgeInsets.only(right: 16),
+                    child: TextButton(
+                      onPressed: () {
+                        _settings.resetDownloadDir();
+                      },
+                      child: const Text('重置为默认'),
+                    ),
+                  ),
+                ),
               // —— 外观设置 ——
               const _GroupHeader('外观设置'),
               RadioGroup<ThemeMode>(
@@ -109,6 +158,15 @@ class _SettingsPageState extends State<SettingsPage> {
                     ),
                   ],
                 ),
+              ),
+              // —— 网络代理 ——
+              const _GroupHeader('网络代理'),
+              ListTile(
+                leading: const Icon(Icons.lan_outlined),
+                title: const Text('网络代理'),
+                subtitle: const Text('配置代理地址与端口（海外图源需代理）'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => context.push('/proxy'),
               ),
               // —— 缓存管理 ——
               const _GroupHeader('缓存管理'),

@@ -68,7 +68,10 @@ class _DownloadRecordsPageState extends State<DownloadRecordsPage> {
                   height: 56,
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(8),
-                    child: ThumbnailImage(url: item.thumbnailUrl ?? item.imageUrl),
+                    child: ThumbnailImage(
+                      url: item.thumbnailUrl ?? item.imageUrl,
+                      useProxy: item.useProxy,
+                    ),
                   ),
                 ),
                 title: Text(

@@ -234,13 +234,13 @@ class _PreviewBodyState extends State<_PreviewBody> {
     );
   }
 
-  /// Web 端原图同样走 CORS 代理（与搜索页缩略图逻辑一致，
-  /// 开关见 [SourceParseService.webCorsProxyEnabled]）。
-  static String _displayUrl(String url) {
-    if (kIsWeb && SourceParseService.webCorsProxyEnabled) {
-      return SourceParseService.buildProxyUri(Uri.parse(url)).toString();
+  /// Web 端原图按图源配置决定是否走 CORS 代理（国内直连图源直连加载；
+  /// 开关见 [SourceParseService.webCorsProxyEnabled] 与 ImageItem.useProxy）。
+  static String _displayUrl(ImageItem item) {
+    if (kIsWeb && item.useProxy && SourceParseService.webCorsProxyEnabled) {
+      return SourceParseService.buildProxyUri(Uri.parse(item.imageUrl)).toString();
     }
-    return url;
+    return item.imageUrl;
   }
 
   @override
@@ -261,7 +261,7 @@ class _PreviewBodyState extends State<_PreviewBody> {
               clipBehavior: Clip.hardEdge,
               child: Center(
                 child: CachedNetworkImage(
-                  imageUrl: _displayUrl(item.imageUrl),
+                  imageUrl: _displayUrl(item),
                   fit: BoxFit.contain,
                   placeholder: (BuildContext context, String url) =>
                       const Center(child: CircularProgressIndicator()),

@@ -20,6 +20,18 @@ abstract final class BuiltinSources {
       name: 'Realbooru',
       baseUrl: 'https://realbooru.com',
     ),
+    _domesticSearch(
+      id: 'baidu_aggregate',
+      name: '百度图片',
+      baseUrl: 'https://zj.v.api.aa1.cn',
+      searchUrlTemplate: '/api/so-baidu-img/?msg={keyword}&page={page}',
+    ),
+    _domesticSearch(
+      id: 'bing_aggregate',
+      name: '必应图片',
+      baseUrl: 'https://zj.v.api.aa1.cn',
+      searchUrlTemplate: '/api/so-bing-img/?msg={keyword}&page={page}',
+    ),
   ];
 
   /// 首页推荐流图源（国内可直连的随机二次元图源）。
@@ -101,6 +113,45 @@ abstract final class BuiltinSources {
           attribute: 'title',
           regex: RegExp(r'Tags:\s*(.*?)(?:\s*User:.*)?$'),
         ),
+      ),
+    );
+  }
+
+  /// 国内可直连的聚合搜索图源（开发调试用）。
+  ///
+  /// **第三方聚合 API，仅用于开发调试，不建议作为正式产品主力图源**；
+  /// 走现有 sourceType=json 解析分支，仅字段映射，无独立解析器。
+  ///
+  /// 实测（2026-09-10）：
+  /// - 百度接口 `/api/so-baidu-img/` ✓ 正常：`{"code":"200","data":[
+  ///   {"oriTitle":"…","hoverUrl":"原图","thumbnailUrl":"缩略图",
+  ///    "width":…,"height":…}]}` → 列表键 data、原图 hoverUrl、
+  ///   缩略图 thumbnailUrl（width/height 为标准键直接读取）；
+  /// - 必应接口 `/api/so-bing-img/` **当前 404（源站下架）**，作为备用
+  ///   图源保留配置，源站恢复即用。
+  /// 异常处理复用现有体系（404/解析失败等既有文案）。
+  static SourceConfig _domesticSearch({
+    required String id,
+    required String name,
+    required String baseUrl,
+    required String searchUrlTemplate,
+  }) {
+    return SourceConfig(
+      id: id,
+      name: name,
+      baseUrl: baseUrl,
+      searchUrlTemplate: searchUrlTemplate,
+      enabled: true,
+      sourceType: SourceType.json,
+      jsonListKey: 'data',
+      jsonFieldMapping: const <String, String>{
+        'file_url': 'hoverUrl',
+        'preview_url': 'thumbnailUrl',
+      },
+      // JSON 图源不使用 HTML 提取规则，占位仅为满足字段必填。
+      extractRule: const ExtractRule(
+        listSelector: 'li',
+        imageUrl: FieldRule(),
       ),
     );
   }

@@ -448,9 +448,9 @@ class _SearchPageState extends State<SearchPage>
                   return _ImageCard(
                     item: item,
                     onTap: () => _openPreview(item),
-                    // 推荐流图源国内可直连（接口带 CORS 头），不走代理；
-                    // 关键词搜索的海外图源保持代理。
-                    useProxy: !_recommendMode,
+                    // 是否走代理随图源配置（ImageItem.useProxy）；
+                    // 国内直连图源（推荐流/百度/必应）直连加载。
+                    useProxy: item.useProxy,
                   );
                 },
               ),

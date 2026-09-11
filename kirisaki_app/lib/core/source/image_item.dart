@@ -8,6 +8,7 @@ class ImageItem {
     this.height,
     this.sourcePage,
     this.tags = const <String>[],
+    this.useProxy = true,
   });
 
   /// 原图地址（下载能力预留字段，本轮不实现下载逻辑）。
@@ -31,6 +32,10 @@ class ImageItem {
   /// 图片标签。
   final List<String> tags;
 
+  /// Web 端是否走 CORS 代理（随图源配置 useWebCorsProxy 写入；
+  /// 国内直连图源为 false，其图片在 Web 端直接加载）。
+  final bool useProxy;
+
   /// 序列化为 JSON 对象（收藏持久化用）。
   Map<String, Object?> toJson() => <String, Object?>{
         'imageUrl': imageUrl,
@@ -40,6 +45,7 @@ class ImageItem {
         'height': height,
         'sourcePage': sourcePage,
         'tags': tags,
+        'useProxy': useProxy,
       };
 
   /// 从 JSON 对象恢复；缺失字段取默认值。
@@ -53,5 +59,6 @@ class ImageItem {
         tags: (json['tags'] as List<Object?>? ?? const <Object?>[])
             .map((Object? t) => '$t')
             .toList(),
+        useProxy: json['useProxy'] as bool? ?? true,
       );
 }

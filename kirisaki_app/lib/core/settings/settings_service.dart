@@ -10,12 +10,18 @@ class SettingsService extends ChangeNotifier {
   static final SettingsService instance = SettingsService();
 
   static const String themeModeKey = 'theme_mode';
+  static const String downloadDirKey = 'download_dir';
 
   SharedPreferencesAsync? _prefs;
   ThemeMode _themeMode = ThemeMode.system;
+  String? _downloadDir;
 
   /// 当前主题模式（默认跟随系统）。
   ThemeMode get themeMode => _themeMode;
+
+  /// 自定义下载位置（桌面为目录路径、Android 为 SAF tree URI；
+  /// null = 系统默认下载目录）。Web 端无目录概念（下载时弹系统保存对话框）。
+  String? get downloadDir => _downloadDir;
 
   SharedPreferencesAsync? get _ensurePrefs {
     try {
@@ -33,13 +39,14 @@ class SettingsService extends ChangeNotifier {
     }
     try {
       final String? raw = await prefs.getString(themeModeKey);
-      if (raw == null) {
-        return;
+      if (raw != null) {
+        _themeMode = ThemeMode.values.firstWhere(
+          (ThemeMode m) => m.name == raw,
+          orElse: () => ThemeMode.system,
+        );
       }
-      _themeMode = ThemeMode.values.firstWhere(
-        (ThemeMode m) => m.name == raw,
-        orElse: () => ThemeMode.system,
-      );
+      // 下载位置独立于主题读取（主题未设置时同样要恢复）。
+      _downloadDir = await prefs.getString(downloadDirKey);
       notifyListeners();
     } catch (_) {
       // 损坏数据容错。
@@ -59,6 +66,36 @@ class SettingsService extends ChangeNotifier {
     }
     try {
       await prefs.setString(themeModeKey, mode.name);
+    } catch (_) {
+      // IO 异常静默。
+    }
+  }
+
+  /// 设置自定义下载位置并持久化。
+  Future<void> setDownloadDir(String dir) async {
+    _downloadDir = dir;
+    notifyListeners();
+    final SharedPreferencesAsync? prefs = _ensurePrefs;
+    if (prefs == null) {
+      return;
+    }
+    try {
+      await prefs.setString(downloadDirKey, dir);
+    } catch (_) {
+      // IO 异常静默。
+    }
+  }
+
+  /// 重置为系统默认下载位置（清空持久化值）。
+  Future<void> resetDownloadDir() async {
+    _downloadDir = null;
+    notifyListeners();
+    final SharedPreferencesAsync? prefs = _ensurePrefs;
+    if (prefs == null) {
+      return;
+    }
+    try {
+      await prefs.remove(downloadDirKey);
     } catch (_) {
       // IO 异常静默。
     }

@@ -210,7 +210,7 @@ class _FavoriteCard extends StatelessWidget {
                   constraints: const BoxConstraints(minHeight: 140),
                   child: AspectRatio(
                     aspectRatio: aspectRatio,
-                    child: ThumbnailImage(url: thumbnail),
+                    child: ThumbnailImage(url: thumbnail, useProxy: item.useProxy),
                   ),
                 ),
                 if (item.tags.isNotEmpty)

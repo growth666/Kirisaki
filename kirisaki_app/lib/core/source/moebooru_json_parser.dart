@@ -32,6 +32,7 @@ abstract final class MoebooruJsonParser {
     required Uri baseUri,
     String? listKey,
     Map<String, String>? fieldMapping,
+    bool itemUseProxy = true,
   }) {
     final Object? decoded = jsonDecode(body);
     final List<Object?> posts;
@@ -53,7 +54,8 @@ abstract final class MoebooruJsonParser {
       if (entry is! Map<String, Object?>) {
         continue;
       }
-      final ImageItem? item = _mapPost(entry, baseUri, fieldMapping);
+      final ImageItem? item =
+          _mapPost(entry, baseUri, fieldMapping, itemUseProxy);
       if (item != null) {
         items.add(item);
       }
@@ -65,6 +67,7 @@ abstract final class MoebooruJsonParser {
     Map<String, Object?> post,
     Uri baseUri,
     Map<String, String>? fieldMapping,
+    bool itemUseProxy,
   ) {
     // 字段映射：把映射目标（响应键）的值写入解析器标准键，
     // 例如 {'file_url': 'link'} → file_url 取 link 的值；
@@ -100,6 +103,7 @@ abstract final class MoebooruJsonParser {
       height: _intField(lookup['height']),
       sourcePage: sourcePage,
       tags: _parseTags(lookup['tags']),
+      useProxy: itemUseProxy,
     );
   }
 

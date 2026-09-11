@@ -5,6 +5,7 @@ import 'package:html/dom.dart';
 import 'package:html/parser.dart' as html_parser;
 import 'package:http/http.dart' as http;
 
+import '../network/http_client_factory.dart';
 import 'image_item.dart';
 import 'moebooru_json_parser.dart';
 import 'source_config.dart';
@@ -19,8 +20,9 @@ import 'source_parse_result.dart';
 /// 裸请求极易触发 Cloudflare 拦截（401/403）；Web 端正常访问必须依赖
 /// [webCorsProxyEnabled]/[webCorsProxyPrefix] 的代理转发。
 class SourceParseService {
-  /// 使用注入的 [client] 便于测试（默认使用真实 [http.Client]）。
-  SourceParseService({http.Client? client}) : _client = client ?? http.Client();
+  /// 使用注入的 [client] 便于测试（默认经全局代理适配构建）。
+  SourceParseService({http.Client? client})
+      : _client = client ?? buildClient();
 
   /// 未解析到图片时的错误信息（分页时可用作"没有更多"的判断）。
   static const String noImagesMessage = '未解析到图片，图源规则可能已失效';
@@ -113,6 +115,7 @@ class SourceParseService {
               baseUri: Uri.parse(config.baseUrl),
               listKey: config.jsonListKey,
               fieldMapping: config.jsonFieldMapping,
+              itemUseProxy: config.useWebCorsProxy,
             )
           : parseHtml(response.body, config);
       if (items.isEmpty) {
@@ -173,6 +176,7 @@ class SourceParseService {
         height: _extractInt(node, config.extractRule.height),
         sourcePage: _extractField(node, config.extractRule.sourcePage, base),
         tags: _extractFieldList(node, config.extractRule.tags),
+        useProxy: config.useWebCorsProxy,
       ));
     }
     return items;

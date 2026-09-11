@@ -32,4 +32,7 @@ abstract final class RouteNames {
 
   /// 关于页。
   static const String about = '/about';
+
+  /// 代理配置页。
+  static const String proxy = '/proxy';
 }

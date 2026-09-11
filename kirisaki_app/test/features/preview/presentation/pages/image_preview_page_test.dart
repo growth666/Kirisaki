@@ -81,7 +81,7 @@ void main() {
     expect(find.text('未找到图片信息'), findsOneWidget);
   });
 
-  testWidgets('下载按钮在非 Web 平台提示暂不支持（stub 分支）', (WidgetTester tester) async {
+  testWidgets('下载按钮在原生平台走 io 下载服务（失败反馈复用 SnackBar）', (WidgetTester tester) async {
     const ImageItem item = ImageItem(
       imageUrl: 'https://example.test/image/a.jpg',
     );
@@ -90,11 +90,12 @@ void main() {
     );
     await tester.pump();
 
+    // VM（原生 io 分支）：fake HttpClient 返回 400 → 下载失败文案。
     await tester.tap(find.byIcon(Icons.download_outlined));
     await tester.pump();
     await tester.pump();
 
-    expect(find.textContaining('当前平台不支持浏览器下载'), findsOneWidget);
+    expect(find.textContaining('下载失败'), findsOneWidget);
   });
 
   testWidgets('收藏按钮切换与状态实时同步', (WidgetTester tester) async {

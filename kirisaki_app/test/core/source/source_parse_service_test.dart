@@ -391,6 +391,50 @@ void main() {
       ),
     );
 
+    test('百度聚合图源字段映射（hoverUrl→原图、thumbnailUrl→缩略图）', () async {
+      // 按实测响应结构编写的 fixture（与 BuiltinSources 百度配置同构）。
+      const String baiduFixture = '''
+{"code":"200","data":[
+  {"oriTitle":"初音","hoverUrl":"https://img.baidu.com/original.jpg",
+   "thumbnailUrl":"https://img.baidu.com/thumb.jpg","width":1000,"height":1778}
+]}
+''';
+      const SourceConfig baiduConfig = SourceConfig(
+        id: 'baidu',
+        name: '百度图片',
+        baseUrl: 'https://zj.v.api.aa1.cn',
+        searchUrlTemplate: '/api/so-baidu-img/?msg={keyword}&page={page}',
+        sourceType: SourceType.json,
+        jsonListKey: 'data',
+        jsonFieldMapping: <String, String>{
+          'file_url': 'hoverUrl',
+          'preview_url': 'thumbnailUrl',
+        },
+        extractRule: ExtractRule(
+          listSelector: 'li',
+          imageUrl: FieldRule(),
+        ),
+      );
+      final SourceParseService service = SourceParseService(
+        client: MockClient(
+          (http.Request request) async =>
+              http.Response(baiduFixture, 200, headers: _utf8Headers),
+        ),
+      );
+
+      final result = await service.search(baiduConfig, keyword: '初音');
+
+      expect(result.isSuccess, isTrue);
+      expect(result.items.single.imageUrl, 'https://img.baidu.com/original.jpg');
+      expect(
+        result.items.single.thumbnailUrl,
+        'https://img.baidu.com/thumb.jpg',
+      );
+      expect(result.items.single.width, 1000);
+      expect(result.items.single.height, 1778);
+      expect(result.items.single.tags, isEmpty);
+    });
+
     const String jsonPosts = '''
 [
   {"id": 1, "tags": "sky cloud",
