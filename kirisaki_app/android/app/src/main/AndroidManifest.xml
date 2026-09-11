@@ -1,4 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.INTERNET" />
     <!-- 仅 Android 9（API 28）及以下保存到公共下载目录需要写权限；
          Android 10+ 走 MediaStore.Downloads 免权限（见 MainActivity.kt）。 -->
     <uses-permission
