@@ -85,11 +85,18 @@ class IoImageDownloadService implements ImageSaveService {
           '下载失败：服务器响应异常（HTTP ${response.statusCode}）',
         );
       }
+      // 用户自选目录（SAF tree URI）随通道传入；未设置走 MediaStore 默认。
+      final String? customDir = SettingsService.instance.downloadDir;
+      final String? treeUri = customDir != null &&
+              customDir.startsWith('content://')
+          ? customDir
+          : null;
       final String? path = await _channel.invokeMethod<String>(
         'saveToDownloads',
-        <String, Object>{
+        <String, Object?>{
           'bytes': response.bodyBytes,
           'fileName': fileName ?? _fileNameFromUrl(imageUrl),
+          'treeUri': treeUri,
         },
       );
       return ImageSaveResult.success(message: '已保存到 $path');

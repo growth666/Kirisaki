@@ -46,10 +46,14 @@ abstract final class BuiltinSources {
   /// `perPage` 即 `pc` 参数（每次返回张数），可按主页列数调整。
   /// 上拉分页 = 再次请求随机接口追加新图（接口每次随机返回，天然"下滑更新"）。
   ///
-  /// 注意：接口域名带 `Access-Control-Allow-Origin: *`，国内可直连，
-  /// 故 `useWebCorsProxy: false` 跳过代理（Web 端 fetch 无 CORS 问题）；
-  /// 图片同样位于 t.alcy.cc（同源），但响应不带 CORS 头，
-  /// Web 端缩略图仍受浏览器限制，桌面/移动端直连可完整显示。
+  /// 注意：
+  /// - `useWebCorsProxy: false` 国内可直连（不走 Web 代理）；
+  /// - **2026-09-11 实测：源站对带 Origin 的请求不再返回
+  ///   Access-Control-Allow-Origin 头（已移除 CORS 支持）**，
+  ///   Web 端推荐流（搜索请求与图片加载）受浏览器 CORS 限制无法使用；
+  ///   桌面/移动端原生请求不受影响，直连正常。
+  /// - 模板保持 `/json?pc={limit}`（无斜杠为当前唯一 200 路径，
+  ///   `/json/` 已 404）。
   static final SourceConfig recommend = SourceConfig(
     id: 'alcy_recommend',
     name: '推荐',
@@ -142,6 +146,9 @@ abstract final class BuiltinSources {
       baseUrl: baseUrl,
       searchUrlTemplate: searchUrlTemplate,
       enabled: true,
+      // 国内直连图源：搜索请求不走 Web CORS 代理
+      // （否则会命中不可用的 corsproxy.io 导致 401）。
+      useWebCorsProxy: false,
       sourceType: SourceType.json,
       jsonListKey: 'data',
       jsonFieldMapping: const <String, String>{
