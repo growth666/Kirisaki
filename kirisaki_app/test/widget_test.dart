@@ -1,10 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
+import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 
 import 'package:kirisaki_app/app.dart';
 
 void main() {
+  setUp(() {
+    SharedPreferencesAsyncPlatform.instance =
+        InMemorySharedPreferencesAsync.empty();
+  });
   testWidgets('启动后显示搜索页', (WidgetTester tester) async {
     await tester.pumpWidget(const KirisakiApp());
     await tester.pump();
@@ -21,12 +27,14 @@ void main() {
     await tester.pumpWidget(const KirisakiApp());
     await tester.pump();
 
-    final GoRouter router =
-        GoRouter.of(tester.element(find.byKey(const Key('searchInput'))));
+    final GoRouter router = GoRouter.of(
+      tester.element(find.byKey(const Key('searchInput'))),
+    );
     router.go('/sources');
     await tester.pumpAndSettle();
 
     expect(find.text('图源管理'), findsOneWidget);
-    expect(find.text('图源管理功能开发中'), findsOneWidget);
+    expect(find.byType(Switch), findsWidgets);
+    expect(find.byTooltip('导入图源'), findsOneWidget);
   });
 }

@@ -3,8 +3,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
+import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 
 import 'package:kirisaki_app/core/source/source_config.dart';
+import 'package:kirisaki_app/core/source/source_service.dart';
 import 'package:kirisaki_app/core/source/source_parse_service.dart';
 import 'package:kirisaki_app/features/preview/presentation/pages/image_preview_page.dart';
 import 'package:kirisaki_app/features/search/presentation/pages/search_page.dart';
@@ -84,8 +87,10 @@ const String _alcyMany = '''
 
 /// 测试专用路由：'/' 挂注入 mock 服务的搜索页，'/preview' 挂预览页。
 /// [autoLoadRecommend] 默认关闭以保持既有用例语义（新推荐流用例单独开启）。
-GoRouter _testRouter(SourceParseService service,
-    {bool autoLoadRecommend = false}) {
+GoRouter _testRouter(
+  SourceParseService service, {
+  bool autoLoadRecommend = false,
+}) {
   return GoRouter(
     initialLocation: '/',
     routes: <RouteBase>[
@@ -93,6 +98,7 @@ GoRouter _testRouter(SourceParseService service,
         path: '/',
         builder: (BuildContext context, GoRouterState state) => SearchPage(
           service: service,
+          sourceService: SourceService(),
           autoLoadRecommend: autoLoadRecommend,
         ),
       ),
@@ -106,6 +112,10 @@ GoRouter _testRouter(SourceParseService service,
 }
 
 void main() {
+  setUp(() {
+    SharedPreferencesAsyncPlatform.instance =
+        InMemorySharedPreferencesAsync.empty();
+  });
   testWidgets('初始提示展示', (WidgetTester tester) async {
     final SourceParseService service = SourceParseService(
       client: MockClient(
@@ -204,10 +214,7 @@ void main() {
     final SourceParseService service = SourceParseService(
       client: MockClient((http.Request request) async {
         final int page = int.parse(request.url.queryParameters['page'] ?? '1');
-        return http.Response(
-          page == 1 ? _moebooruFixture : _emptyFixture,
-          200,
-        );
+        return http.Response(page == 1 ? _moebooruFixture : _emptyFixture, 200);
       }),
     );
     await tester.pumpWidget(
@@ -240,10 +247,7 @@ void main() {
           pageOneRequests++;
         }
         await Future<void>.delayed(const Duration(milliseconds: 300));
-        return http.Response(
-          page == 1 ? _moebooruFixture : _emptyFixture,
-          200,
-        );
+        return http.Response(page == 1 ? _moebooruFixture : _emptyFixture, 200);
       }),
     );
     await tester.pumpWidget(
@@ -299,9 +303,7 @@ void main() {
     await tester.pumpAndSettle();
     // 直接点击菜单项组件（last 为展开 overlay 中的可见项，
     // 隐藏测量层中的副本位于树序靠前）。
-    await tester.tap(
-      find.widgetWithText(MenuItemButton, 'konachan.net').last,
-    );
+    await tester.tap(find.widgetWithText(MenuItemButton, 'konachan.net').last);
     await tester.pumpAndSettle();
 
     // 切换图源：列表清空、回到初始提示。

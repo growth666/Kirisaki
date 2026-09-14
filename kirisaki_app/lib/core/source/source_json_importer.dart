@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'custom_source_store.dart';
 import 'source_config.dart';
+import 'source_service.dart';
 
 /// 图源 JSON 导入结果：成功携带配置，失败携带明确错误信息。
 class SourceImportResult {
@@ -9,11 +10,11 @@ class SourceImportResult {
 
   /// 解析校验成功。
   const SourceImportResult.success(SourceConfig config)
-      : this._(config: config);
+    : this._(config: config);
 
   /// 失败，[errorMessage] 为可直接展示的中文提示。
   const SourceImportResult.failure(String errorMessage)
-      : this._(errorMessage: errorMessage);
+    : this._(errorMessage: errorMessage);
 
   /// 解析出的图源配置（失败时为 null）。
   final SourceConfig? config;
@@ -31,10 +32,14 @@ class SourceImportResult {
 /// - 导入成功后自动写入 [CustomSourceStore]（App 重启不丢失）；
 /// - 内置图源列表不参与导入（只写 custom key）。
 class SourceJsonImporter {
-  SourceJsonImporter({CustomSourceStore? store})
-      : _store = store ?? CustomSourceStore();
+  SourceJsonImporter({CustomSourceStore? store, SourceService? service})
+    : _service =
+          service ??
+          (store == null
+              ? SourceService.instance
+              : SourceService(store: store));
 
-  final CustomSourceStore _store;
+  final SourceService _service;
 
   /// 解析并校验 JSON 文本；失败返回明确中文提示（不抛异常）。
   SourceImportResult parseAndValidate(String jsonText) {
@@ -77,25 +82,37 @@ class SourceJsonImporter {
   }
 
   /// 解析校验通过后去重（id 唯一）并持久化。
-  Future<SourceImportResult> importAndSave(String jsonText) async {
+  Future<SourceImportResult> importAndSave(
+    String jsonText, {
+    String? editingId,
+  }) async {
     final SourceImportResult parsed = parseAndValidate(jsonText);
     if (!parsed.isSuccess) {
       return parsed;
     }
     final SourceConfig config = parsed.config!;
-    final List<SourceConfig> existing = await _store.load();
-    if (existing.any((SourceConfig s) => s.id == config.id)) {
-      return SourceImportResult.failure('图源 id 已存在：${config.id}');
+    try {
+      if (editingId == null) {
+        await _service.add(config);
+      } else {
+        await _service.update(editingId, config);
+      }
+      return parsed;
+    } on StateError catch (error) {
+      return SourceImportResult.failure(error.message);
+    } catch (error) {
+      return SourceImportResult.failure('保存图源失败：$error');
     }
-    existing.add(config);
-    await _store.save(existing);
-    return parsed;
   }
 
   /// 必填字段检查：返回首个缺失字段名，完整则返回 null。
   static String? _firstMissingField(Map<String, Object?> json) {
-    const List<String> requiredTopLevel =
-        <String>['id', 'name', 'baseUrl', 'searchUrlTemplate'];
+    const List<String> requiredTopLevel = <String>[
+      'id',
+      'name',
+      'baseUrl',
+      'searchUrlTemplate',
+    ];
     for (final String field in requiredTopLevel) {
       final Object? value = json[field];
       if (value is! String || value.trim().isEmpty) {

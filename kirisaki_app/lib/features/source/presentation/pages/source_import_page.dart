@@ -1,14 +1,17 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../../../core/source/source_json_importer.dart';
+import '../../../../core/source/source_config.dart';
 
 /// 图源导入页：粘贴 JSON 文本导入自定义图源。
 ///
 /// 失败 → 页面内红色错误文本展示明确提示（格式错误/字段缺失），不崩溃；
 /// 成功 → SnackBar 提示并返回上一页；导入结果自动持久化（App 重启不丢失）。
 class SourceImportPage extends StatefulWidget {
-  const SourceImportPage({super.key, this.importer});
+  const SourceImportPage({super.key, this.importer, this.source});
+  final SourceConfig? source;
 
   /// 注入的导入器（测试用），默认使用真实导入器。
   final SourceJsonImporter? importer;
@@ -26,6 +29,15 @@ class _SourceImportPageState extends State<SourceImportPage> {
   bool _importing = false; // 导入中请求锁
 
   @override
+  void initState() {
+    super.initState();
+    if (widget.source != null) {
+      _controller.text = const JsonEncoder.withIndent('  ')
+          .convert(widget.source!.toJson());
+    }
+  }
+
+  @override
   void dispose() {
     _controller.dispose();
     super.dispose();
@@ -40,8 +52,10 @@ class _SourceImportPageState extends State<SourceImportPage> {
       _error = null;
       _importing = true;
     });
-    final SourceImportResult result =
-        await _importer.importAndSave(_controller.text);
+    final SourceImportResult result = await _importer.importAndSave(
+      _controller.text,
+      editingId: widget.source?.id,
+    );
     if (!mounted) {
       return;
     }
@@ -50,9 +64,13 @@ class _SourceImportPageState extends State<SourceImportPage> {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(
-          SnackBar(content: Text('图源「${result.config!.name}」导入成功')),
+          SnackBar(
+            content: Text(
+              '图源「${result.config!.name}」${widget.source == null ? '导入成功' : '已更新'}',
+            ),
+          ),
         );
-      context.pop();
+      Navigator.of(context).pop();
     } else {
       setState(() => _error = result.errorMessage);
     }
@@ -62,7 +80,7 @@ class _SourceImportPageState extends State<SourceImportPage> {
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('导入图源')),
+      appBar: AppBar(title: Text(widget.source == null ? '导入图源' : '编辑图源')),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -72,8 +90,9 @@ class _SourceImportPageState extends State<SourceImportPage> {
               '粘贴图源配置 JSON（必填：id / name / baseUrl / '
               'searchUrlTemplate / extractRule.listSelector / '
               'extractRule.imageUrl）',
-              style: theme.textTheme.bodySmall
-                  ?.copyWith(color: theme.colorScheme.outline),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.outline,
+              ),
             ),
             const SizedBox(height: 8),
             Expanded(
@@ -94,8 +113,9 @@ class _SourceImportPageState extends State<SourceImportPage> {
               // 导入失败：红色错误文本展示明确提示，不崩溃。
               Text(
                 _error!,
-                style: theme.textTheme.bodyMedium
-                    ?.copyWith(color: theme.colorScheme.error),
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.error,
+                ),
               ),
             ],
             const SizedBox(height: 12),
@@ -108,7 +128,7 @@ class _SourceImportPageState extends State<SourceImportPage> {
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : const Icon(Icons.file_download_outlined),
-              label: const Text('导入'),
+              label: Text(widget.source == null ? '导入' : '保存'),
             ),
           ],
         ),

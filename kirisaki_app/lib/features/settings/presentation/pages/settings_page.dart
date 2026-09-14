@@ -8,8 +8,7 @@ import '../../../../core/profile/download_service.dart';
 import '../../../../core/profile/history_service.dart';
 import '../../../../core/profile/search_history_service.dart';
 import '../../../../core/settings/settings_service.dart';
-import '../../../../core/source/custom_source_store.dart';
-import '../../../../core/source/source_config.dart';
+import '../../../../core/source/source_service.dart';
 
 /// 设置页面：下载设置、外观设置、缓存管理、数据管理、关于入口。
 class SettingsPage extends StatefulWidget {
@@ -50,13 +49,21 @@ class _SettingsPageState extends State<SettingsPage> {
     if (confirmed != true) {
       return;
     }
-    await Future.wait(<Future<void>>[
-      FavoriteService.instance.clearAll(),
-      HistoryService.instance.clear(),
-      SearchHistoryService.instance.clear(),
-      DownloadService.instance.clear(),
-      CustomSourceStore().save(const <SourceConfig>[]),
-    ]);
+    try {
+      await SourceService.instance.reset();
+      await Future.wait(<Future<void>>[
+        FavoriteService.instance.clearAll(),
+        HistoryService.instance.clear(),
+        SearchHistoryService.instance.clear(),
+        DownloadService.instance.clear(),
+      ]);
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('清空失败：$error')));
+      }
+      return;
+    }
     if (mounted) {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
@@ -185,8 +192,10 @@ class _SettingsPageState extends State<SettingsPage> {
               // —— 数据管理 ——
               const _GroupHeader('数据管理'),
               ListTile(
-                leading: Icon(Icons.delete_forever_outlined,
-                    color: theme.colorScheme.error),
+                leading: Icon(
+                  Icons.delete_forever_outlined,
+                  color: theme.colorScheme.error,
+                ),
                 title: Text(
                   '清空全部本地数据',
                   style: TextStyle(color: theme.colorScheme.error),
@@ -223,8 +232,9 @@ class _GroupHeader extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 20, 16, 4),
       child: Text(
         title,
-        style: theme.textTheme.labelLarge
-            ?.copyWith(color: theme.colorScheme.primary),
+        style: theme.textTheme.labelLarge?.copyWith(
+          color: theme.colorScheme.primary,
+        ),
       ),
     );
   }

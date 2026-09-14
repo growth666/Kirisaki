@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:go_router/go_router.dart';
@@ -8,11 +10,18 @@ import '../../../../core/source/image_item.dart';
 import '../../../../core/source/source_config.dart';
 import '../../../../core/source/source_parse_result.dart';
 import '../../../../core/source/source_parse_service.dart';
+import '../../../../core/source/source_service.dart';
 import '../widgets/thumbnail_image.dart';
 
 /// 搜索页：关键词搜索 + 瀑布流图片列表 + 上拉分页。
 class SearchPage extends StatefulWidget {
-  const SearchPage({super.key, this.service, this.autoLoadRecommend = true});
+  const SearchPage({
+    super.key,
+    this.service,
+    this.sourceService,
+    this.autoLoadRecommend = true,
+  });
+  final SourceService? sourceService;
 
   /// 注入解析服务（测试用），默认使用真实网络。
   final SourceParseService? service;
@@ -35,9 +44,13 @@ class _SearchPageState extends State<SearchPage>
   @override
   bool get wantKeepAlive => true;
 
-  // 只列启用的图源；禁用图源不参与搜索（图源管理后续轮次动态维护 enabled）。
-  final List<SourceConfig> _sources =
-      BuiltinSources.all.where((SourceConfig s) => s.enabled).toList();
+  // 搜索列表随共享图源服务刷新。
+  late final SourceService _sourceService =
+      widget.sourceService ?? SourceService.instance;
+  List<SourceConfig> _sources = [];
+  int _requestGeneration = 0;
+  String? _sourceError;
+  bool _sourcesReady = false;
   SourceConfig? _selectedSource;
 
   final List<ImageItem> _items = <ImageItem>[];
@@ -61,7 +74,10 @@ class _SearchPageState extends State<SearchPage>
   @override
   void initState() {
     super.initState();
+    _sources = _sourceService.enabled;
     _selectedSource = _sources.isNotEmpty ? _sources.first : null;
+    _sourceService.addListener(_onSourcesChanged);
+    _loadSources();
     _scrollController.addListener(_onScroll);
     if (widget.autoLoadRecommend) {
       // 默认进入自动加载推荐流（microtask 避开 initState 内 setState 限制）。
@@ -73,11 +89,71 @@ class _SearchPageState extends State<SearchPage>
 
   @override
   void dispose() {
+    _sourceService.removeListener(_onSourcesChanged);
     SearchHistoryService.instance.removeListener(_onHistoryQuickSearch);
     _showBackToTopNotifier.dispose();
     _scrollController.dispose();
     _searchController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadSources() async {
+    try {
+      await _sourceService.load();
+      if (mounted) {
+        setState(() {
+          _sourcesReady = true;
+          _sourceError = null;
+        });
+      }
+    } catch (error) {
+      if (mounted) setState(() => _sourceError = '加载图源失败：$error');
+    }
+  }
+
+  void _clearSearch() {
+    _requestGeneration++;
+    _items.clear();
+    _loading = false;
+    _loadingMore = false;
+    _page = 1;
+    _hasMore = true;
+    _error = null;
+    _searched = false;
+    _lastKeyword = null;
+    _lastSource = null;
+  }
+
+  void _onSourcesChanged() {
+    if (!mounted) return;
+    final next = _sourceService.enabled;
+    final old = _selectedSource;
+    final matches = next.where((s) => s.id == old?.id);
+    final selected = matches.isNotEmpty
+        ? matches.first
+        : (next.isEmpty ? null : next.first);
+    final active = _lastSource;
+    final activeMatches = next.where((s) => s.id == active?.id);
+    final activeChanged =
+        active != null &&
+        !_recommendMode &&
+        (activeMatches.isEmpty ||
+            jsonEncode(active.toJson()) !=
+                jsonEncode(activeMatches.first.toJson()));
+    setState(() {
+      _sources = next;
+      _selectedSource = selected;
+      if (activeChanged) _clearSearch();
+    });
+  }
+
+  void _selectSource(SourceConfig source) {
+    if (_selectedSource?.id == source.id && !_recommendMode) return;
+    setState(() {
+      _clearSearch();
+      _selectedSource = source;
+      _recommendMode = false;
+    });
   }
 
   /// 搜索历史页点击条目 → 填入关键词并立即执行搜索。
@@ -102,14 +178,14 @@ class _SearchPageState extends State<SearchPage>
     }
     // 回到顶部按钮：下滑超过阈值显示，到顶自动隐藏。
     // 仅更新 ValueNotifier，不触发整页 setState。
-    final bool show =
-        _scrollController.position.pixels > _backToTopThreshold;
+    final bool show = _scrollController.position.pixels > _backToTopThreshold;
     if (show != _showBackToTopNotifier.value) {
       _showBackToTopNotifier.value = show;
     }
   }
 
   Future<void> _search() async {
+    if (!_sourcesReady) return;
     // 请求锁：加载中直接返回，防止连点搜索按钮重复发起请求。
     if (_loading) {
       return;
@@ -125,8 +201,10 @@ class _SearchPageState extends State<SearchPage>
       _showSnackBar('请输入搜索关键词');
       return;
     }
+    final generation = ++_requestGeneration;
     setState(() {
       _loading = true;
+      _loadingMore = false;
       _error = null;
       _searched = true;
       _items.clear();
@@ -136,9 +214,12 @@ class _SearchPageState extends State<SearchPage>
       _lastSource = source;
       _recommendMode = false; // 关键词搜索接管，退出推荐流模式
     });
-    final SourceParseResult result =
-        await _service.search(source, keyword: keyword, page: 1);
-    if (!mounted) {
+    final SourceParseResult result = await _service.search(
+      source,
+      keyword: keyword,
+      page: 1,
+    );
+    if (!mounted || generation != _requestGeneration) {
       return;
     }
     setState(() {
@@ -170,12 +251,13 @@ class _SearchPageState extends State<SearchPage>
       return;
     }
     setState(() => _loadingMore = true);
+    final generation = _requestGeneration;
     final SourceParseResult result = await _service.search(
       source,
       keyword: keyword ?? '',
       page: _page + 1,
     );
-    if (!mounted) {
+    if (!mounted || generation != _requestGeneration) {
       return;
     }
     setState(() {
@@ -208,8 +290,10 @@ class _SearchPageState extends State<SearchPage>
       return;
     }
     final SourceConfig config = BuiltinSources.recommend;
+    final generation = ++_requestGeneration;
     setState(() {
       _loading = true;
+      _loadingMore = false;
       _error = null;
       _searched = true;
       _recommendMode = true;
@@ -219,9 +303,8 @@ class _SearchPageState extends State<SearchPage>
       _lastKeyword = null;
       _lastSource = config;
     });
-    final SourceParseResult result =
-        await _service.search(config, keyword: '');
-    if (!mounted) {
+    final SourceParseResult result = await _service.search(config, keyword: '');
+    if (!mounted || generation != _requestGeneration) {
       return;
     }
     setState(() {
@@ -288,6 +371,24 @@ class _SearchPageState extends State<SearchPage>
       body: Column(
         children: [
           _buildFloatingHeader(),
+          if (_sourceError != null)
+            ListTile(
+              title: Text(_sourceError!),
+              trailing: IconButton(
+                tooltip: '重试',
+                onPressed: _loadSources,
+                icon: const Icon(Icons.refresh),
+              ),
+            ),
+          if (_sourcesReady && _sources.isEmpty)
+            ListTile(
+              title: const Text('暂无启用的搜索图源'),
+              trailing: IconButton(
+                tooltip: '图源管理',
+                onPressed: () => context.push('/sources'),
+                icon: const Icon(Icons.tune),
+              ),
+            ),
           Expanded(child: _buildBody()),
         ],
       ),
@@ -309,12 +410,7 @@ class _SearchPageState extends State<SearchPage>
           ),
         ],
       ),
-      child: Column(
-        children: [
-          _buildSearchBar(),
-          _buildCategoryBar(),
-        ],
-      ),
+      child: Column(children: [_buildSearchBar(), _buildCategoryBar()]),
     );
   }
 
@@ -338,7 +434,7 @@ class _SearchPageState extends State<SearchPage>
               selected: !_recommendMode && _selectedSource?.id == source.id,
               onSelected: (_) {
                 // 仅同步下拉框选中图源，不自动搜索（保持原图源选择逻辑）。
-                setState(() => _selectedSource = source);
+                _selectSource(source);
               },
             ),
           ],
@@ -370,6 +466,8 @@ class _SearchPageState extends State<SearchPage>
           ),
           const SizedBox(width: 8),
           DropdownMenu<SourceConfig>(
+            key: ValueKey(jsonEncode(_selectedSource?.toJson())),
+            enabled: _sourcesReady && _sources.isNotEmpty,
             initialSelection: _selectedSource,
             width: 140,
             requestFocusOnTap: false,
@@ -378,18 +476,7 @@ class _SearchPageState extends State<SearchPage>
               if (value == null || value == _selectedSource) {
                 return;
               }
-              setState(() {
-                _selectedSource = value;
-                // 切换图源：清空结果列表并重置分页/错误状态，
-                // 避免上一图源的结果与新图源的结果混在一起。
-                _items.clear();
-                _page = 1;
-                _hasMore = true;
-                _error = null;
-                _searched = false;
-                _lastKeyword = null;
-                _lastSource = null;
-              });
+              _selectSource(value);
             },
             dropdownMenuEntries: _sources
                 .map(
@@ -401,7 +488,9 @@ class _SearchPageState extends State<SearchPage>
           const SizedBox(width: 8),
           IconButton.filled(
             // 加载中禁用按钮（与 _search 入口的请求锁双保险）。
-            onPressed: _loading ? null : _search,
+            onPressed: _loading || !_sourcesReady || _sources.isEmpty
+                ? null
+                : _search,
             tooltip: '搜索',
             icon: const Icon(Icons.arrow_forward),
           ),
@@ -432,7 +521,10 @@ class _SearchPageState extends State<SearchPage>
     return LayoutBuilder(
       builder: (BuildContext context, BoxConstraints constraints) {
         // 按可用宽度自适应列数（2~5 列），避免固定列数在宽屏/窄屏失衡。
-        final int crossAxisCount = (constraints.maxWidth / 200).floor().clamp(2, 5);
+        final int crossAxisCount = (constraints.maxWidth / 200).floor().clamp(
+          2,
+          5,
+        );
         return CustomScrollView(
           controller: _scrollController,
           slivers: [
@@ -475,8 +567,9 @@ class _SearchPageState extends State<SearchPage>
     } else if (!_hasMore) {
       child = Text(
         '没有更多了',
-        style: theme.textTheme.bodySmall
-            ?.copyWith(color: theme.colorScheme.outline),
+        style: theme.textTheme.bodySmall?.copyWith(
+          color: theme.colorScheme.outline,
+        ),
       );
     } else {
       child = const SizedBox.shrink();
@@ -506,7 +599,8 @@ class _ImageCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
     final String thumbnail = item.thumbnailUrl ?? item.imageUrl;
-    final double aspectRatio = item.width != null &&
+    final double aspectRatio =
+        item.width != null &&
             item.height != null &&
             item.width! > 0 &&
             item.height! > 0
@@ -539,8 +633,9 @@ class _ImageCard extends StatelessWidget {
                     for (final String tag in item.tags.take(8))
                       Text(
                         '#$tag',
-                        style: theme.textTheme.labelSmall
-                            ?.copyWith(color: theme.colorScheme.primary),
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: theme.colorScheme.primary,
+                        ),
                       ),
                   ],
                 ),
@@ -573,8 +668,9 @@ class _HintView extends StatelessWidget {
             const SizedBox(height: 12),
             Text(
               message,
-              style: theme.textTheme.bodyMedium
-                  ?.copyWith(color: theme.colorScheme.outline),
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.outline,
+              ),
             ),
           ],
         ),

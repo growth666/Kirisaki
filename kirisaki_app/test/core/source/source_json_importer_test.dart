@@ -5,6 +5,7 @@ import 'package:shared_preferences_platform_interface/shared_preferences_async_p
 import 'package:kirisaki_app/core/source/custom_source_store.dart';
 import 'package:kirisaki_app/core/source/source_config.dart';
 import 'package:kirisaki_app/core/source/source_json_importer.dart';
+import 'package:kirisaki_app/core/source/source_service.dart';
 
 const String _validHtmlJson = '''
 {
@@ -23,16 +24,19 @@ const String _validHtmlJson = '''
 ''';
 
 void main() {
+  late SourceService service;
   setUp(() {
     SharedPreferencesAsyncPlatform.instance =
         InMemorySharedPreferencesAsync.empty();
+    service = SourceService();
   });
 
   test('合法 JSON 解析成功并持久化，重启后可恢复', () async {
-    final SourceJsonImporter importer = SourceJsonImporter();
+    final SourceJsonImporter importer = SourceJsonImporter(service: service);
 
-    final SourceImportResult result =
-        await importer.importAndSave(_validHtmlJson);
+    final SourceImportResult result = await importer.importAndSave(
+      _validHtmlJson,
+    );
 
     expect(result.isSuccess, isTrue);
     expect(result.config!.id, 'custom_a');
@@ -66,8 +70,7 @@ void main() {
   test('字段缺失返回缺失字段名', () {
     final SourceJsonImporter importer = SourceJsonImporter();
 
-    final SourceImportResult result =
-        importer.parseAndValidate('{"id": "x"}');
+    final SourceImportResult result = importer.parseAndValidate('{"id": "x"}');
 
     expect(result.isSuccess, isFalse);
     expect(result.errorMessage, '缺少必填字段：name');
@@ -85,11 +88,12 @@ void main() {
   });
 
   test('重复 id 导入被拒绝', () async {
-    final SourceJsonImporter importer = SourceJsonImporter();
+    final SourceJsonImporter importer = SourceJsonImporter(service: service);
 
     expect((await importer.importAndSave(_validHtmlJson)).isSuccess, isTrue);
-    final SourceImportResult second =
-        await importer.importAndSave(_validHtmlJson);
+    final SourceImportResult second = await importer.importAndSave(
+      _validHtmlJson,
+    );
 
     expect(second.isSuccess, isFalse);
     expect(second.errorMessage, '图源 id 已存在：custom_a');

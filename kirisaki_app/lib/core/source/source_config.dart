@@ -79,47 +79,51 @@ class SourceConfig {
   /// JSON 字段映射：解析器标准键 → 响应键（如 {'file_url': 'link'}）。
   final Map<String, String>? jsonFieldMapping;
 
+  SourceConfig copyWith({bool? enabled}) =>
+      SourceConfig.fromJson({...toJson(), 'enabled': enabled ?? this.enabled});
+
   /// 序列化为 JSON 对象（供自定义图源持久化；内置图源不参与）。
   Map<String, Object?> toJson() => <String, Object?>{
-        'id': id,
-        'name': name,
-        'baseUrl': baseUrl,
-        'searchUrlTemplate': searchUrlTemplate,
-        'extractRule': extractRule.toJson(),
-        'timeoutSeconds': timeout.inSeconds,
-        'userAgent': userAgent,
-        'useWebCorsProxy': useWebCorsProxy,
-        'perPage': perPage,
-        'enabled': enabled,
-        'sourceType': sourceType.name,
-        'requiresKeyword': requiresKeyword,
-        'jsonListKey': jsonListKey,
-        'jsonFieldMapping': jsonFieldMapping,
-      };
+    'id': id,
+    'name': name,
+    'baseUrl': baseUrl,
+    'searchUrlTemplate': searchUrlTemplate,
+    'extractRule': extractRule.toJson(),
+    'timeoutSeconds': timeout.inSeconds,
+    'userAgent': userAgent,
+    'useWebCorsProxy': useWebCorsProxy,
+    'perPage': perPage,
+    'enabled': enabled,
+    'sourceType': sourceType.name,
+    'requiresKeyword': requiresKeyword,
+    'jsonListKey': jsonListKey,
+    'jsonFieldMapping': jsonFieldMapping,
+  };
 
   /// 从 JSON 对象恢复；缺失字段取默认值。
   factory SourceConfig.fromJson(Map<String, Object?> json) => SourceConfig(
-        id: json['id'] as String,
-        name: json['name'] as String,
-        baseUrl: json['baseUrl'] as String,
-        searchUrlTemplate: json['searchUrlTemplate'] as String,
-        extractRule: ExtractRule.fromJson(
-          json['extractRule']! as Map<String, Object?>,
-        ),
-        timeout: Duration(seconds: json['timeoutSeconds'] as int? ?? 10),
-        userAgent: json['userAgent'] as String? ?? defaultUserAgent,
-        useWebCorsProxy: json['useWebCorsProxy'] as bool? ?? true,
-        perPage: json['perPage'] as int?,
-        enabled: json['enabled'] as bool? ?? true,
-        sourceType: SourceType.values.firstWhere(
-          (SourceType t) => t.name == json['sourceType'],
-          orElse: () => SourceType.html,
-        ),
-        requiresKeyword: json['requiresKeyword'] as bool? ?? true,
-        jsonListKey: json['jsonListKey'] as String?,
-        jsonFieldMapping: (json['jsonFieldMapping'] as Map<String, Object?>?)
-            ?.map((String k, Object? v) => MapEntry<String, String>(k, '$v')),
-      );
+    id: json['id'] as String,
+    name: json['name'] as String,
+    baseUrl: json['baseUrl'] as String,
+    searchUrlTemplate: json['searchUrlTemplate'] as String,
+    extractRule: ExtractRule.fromJson(
+      json['extractRule']! as Map<String, Object?>,
+    ),
+    timeout: Duration(seconds: json['timeoutSeconds'] as int? ?? 10),
+    userAgent: json['userAgent'] as String? ?? defaultUserAgent,
+    useWebCorsProxy: json['useWebCorsProxy'] as bool? ?? true,
+    perPage: json['perPage'] as int?,
+    enabled: json['enabled'] as bool? ?? true,
+    sourceType: SourceType.values.firstWhere(
+      (SourceType t) => t.name == json['sourceType'],
+      orElse: () => SourceType.html,
+    ),
+    requiresKeyword: json['requiresKeyword'] as bool? ?? true,
+    jsonListKey: json['jsonListKey'] as String?,
+    jsonFieldMapping: (json['jsonFieldMapping'] as Map<String, Object?>?)?.map(
+      (String k, Object? v) => MapEntry<String, String>(k, '$v'),
+    ),
+  );
 }
 
 /// 从 JSON 恢复可空的 FieldRule；非对象数据返回 null。
@@ -165,28 +169,27 @@ class ExtractRule {
 
   /// 序列化为 JSON 对象。
   Map<String, Object?> toJson() => <String, Object?>{
-        'listSelector': listSelector,
-        'imageUrl': imageUrl.toJson(),
-        'thumbnailUrl': thumbnailUrl?.toJson(),
-        'previewUrl': previewUrl?.toJson(),
-        'width': width?.toJson(),
-        'height': height?.toJson(),
-        'sourcePage': sourcePage?.toJson(),
-        'tags': tags?.toJson(),
-      };
+    'listSelector': listSelector,
+    'imageUrl': imageUrl.toJson(),
+    'thumbnailUrl': thumbnailUrl?.toJson(),
+    'previewUrl': previewUrl?.toJson(),
+    'width': width?.toJson(),
+    'height': height?.toJson(),
+    'sourcePage': sourcePage?.toJson(),
+    'tags': tags?.toJson(),
+  };
 
   /// 从 JSON 对象恢复。
   factory ExtractRule.fromJson(Map<String, Object?> json) => ExtractRule(
-        listSelector: json['listSelector'] as String,
-        imageUrl:
-            FieldRule.fromJson(json['imageUrl']! as Map<String, Object?>),
-        thumbnailUrl: _fieldRuleFromJson(json['thumbnailUrl']),
-        previewUrl: _fieldRuleFromJson(json['previewUrl']),
-        width: _fieldRuleFromJson(json['width']),
-        height: _fieldRuleFromJson(json['height']),
-        sourcePage: _fieldRuleFromJson(json['sourcePage']),
-        tags: _fieldRuleFromJson(json['tags']),
-      );
+    listSelector: json['listSelector'] as String,
+    imageUrl: FieldRule.fromJson(json['imageUrl']! as Map<String, Object?>),
+    thumbnailUrl: _fieldRuleFromJson(json['thumbnailUrl']),
+    previewUrl: _fieldRuleFromJson(json['previewUrl']),
+    width: _fieldRuleFromJson(json['width']),
+    height: _fieldRuleFromJson(json['height']),
+    sourcePage: _fieldRuleFromJson(json['sourcePage']),
+    tags: _fieldRuleFromJson(json['tags']),
+  );
 }
 
 /// 单个字段的提取规则。
@@ -222,19 +225,19 @@ class FieldRule {
 
   /// 序列化为 JSON 对象（regex 存 pattern 字符串）。
   Map<String, Object?> toJson() => <String, Object?>{
-        'selector': selector,
-        'attribute': attribute,
-        'useText': useText,
-        'resolveUrl': resolveUrl,
-        'regex': regex?.pattern,
-      };
+    'selector': selector,
+    'attribute': attribute,
+    'useText': useText,
+    'resolveUrl': resolveUrl,
+    'regex': regex?.pattern,
+  };
 
   /// 从 JSON 对象恢复；缺失字段取默认值。
   factory FieldRule.fromJson(Map<String, Object?> json) => FieldRule(
-        selector: json['selector'] as String?,
-        attribute: json['attribute'] as String?,
-        useText: json['useText'] as bool? ?? false,
-        resolveUrl: json['resolveUrl'] as bool? ?? true,
-        regex: json['regex'] is String ? RegExp(json['regex']! as String) : null,
-      );
+    selector: json['selector'] as String?,
+    attribute: json['attribute'] as String?,
+    useText: json['useText'] as bool? ?? false,
+    resolveUrl: json['resolveUrl'] as bool? ?? true,
+    regex: json['regex'] is String ? RegExp(json['regex']! as String) : null,
+  );
 }

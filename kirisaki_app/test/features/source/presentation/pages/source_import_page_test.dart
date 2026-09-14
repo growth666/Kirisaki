@@ -28,9 +28,7 @@ void main() {
   });
 
   testWidgets('粘贴非法 JSON 显示错误文本且不崩溃', (WidgetTester tester) async {
-    await tester.pumpWidget(
-      const MaterialApp(home: SourceImportPage()),
-    );
+    await tester.pumpWidget(const MaterialApp(home: SourceImportPage()));
     await tester.pump();
 
     await tester.enterText(find.byKey(const Key('sourceJsonInput')), 'bad{');
@@ -42,9 +40,12 @@ void main() {
     expect(find.byType(SourceImportPage), findsOneWidget); // 页面仍存活
   });
 
-  testWidgets('合法 JSON 导入成功：持久化可读 + SnackBar + 返回上一页',
-      (WidgetTester tester) async {
-    final SourceJsonImporter importer = SourceJsonImporter();
+  testWidgets('合法 JSON 导入成功：持久化可读 + SnackBar + 返回上一页', (
+    WidgetTester tester,
+  ) async {
+    final SourceJsonImporter importer = SourceJsonImporter(
+      store: CustomSourceStore(),
+    );
     final GoRouter router = GoRouter(
       initialLocation: '/back',
       routes: <RouteBase>[
@@ -64,7 +65,10 @@ void main() {
     router.push('/import'); // 压栈后 pop 才合法
     await tester.pumpAndSettle();
 
-    await tester.enterText(find.byKey(const Key('sourceJsonInput')), _validJson);
+    await tester.enterText(
+      find.byKey(const Key('sourceJsonInput')),
+      _validJson,
+    );
     await tester.tap(find.text('导入'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));
