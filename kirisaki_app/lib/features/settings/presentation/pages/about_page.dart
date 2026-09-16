@@ -43,6 +43,13 @@ class AboutPage extends StatelessWidget {
               ),
               const SizedBox(height: 24),
               Text(
+                '特别鸣谢:'
+                'VIP:失去重力，徐氏',
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodyMedium,
+              ),
+              const SizedBox(height: 24),
+              Text(
                 '开源说明：本项目仅供学习交流使用，请遵守各图源站点'
                 '服务条款与当地法律法规。',
                 textAlign: TextAlign.center,
