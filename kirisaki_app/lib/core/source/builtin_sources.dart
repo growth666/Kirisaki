@@ -1,36 +1,37 @@
 import 'source_config.dart';
 
-/// 内置图源。
+/// Official search endpoints; live verification is recorded in docs/source-verification.md.
 abstract final class BuiltinSources {
-  /// 全部内置图源（搜索页下拉框数据源）。
   static final List<SourceConfig> all = <SourceConfig>[
-    _moebooru(id: 'yande', name: 'yande.re', baseUrl: 'https://yande.re'),
-    _moebooru(
-      id: 'konachan',
-      name: 'konachan.net',
-      baseUrl: 'https://konachan.net',
-    ),
-    _moebooruJson(
+    _json(
       id: 'safebooru',
       name: 'Safebooru',
       baseUrl: 'https://safebooru.org',
+      template: '/index.php?page=dapi&s=post&q=index&json=1&tags={keyword}&limit={limit}&pid={page}',
+      format: SourceJsonFormat.gelbooru,
+      pageOffset: -1,
     ),
-    _moebooruJson(
-      id: 'realbooru',
-      name: 'Realbooru',
-      baseUrl: 'https://realbooru.com',
+    _json(
+      id: 'danbooru_safe',
+      name: 'Danbooru (Safe)',
+      baseUrl: 'https://safebooru.donmai.us',
+      template: '/posts.json?tags={keyword}&limit={limit}&page={page}',
+      format: SourceJsonFormat.danbooru,
     ),
-    _domesticSearch(
-      id: 'baidu_aggregate',
-      name: '百度图片',
-      baseUrl: 'https://zj.v.api.aa1.cn',
-      searchUrlTemplate: '/api/so-baidu-img/?msg={keyword}&page={page}',
+    _json(
+      id: 'zerochan',
+      name: 'Zerochan',
+      baseUrl: 'https://www.zerochan.net',
+      template: '/{keyword}?json&p={page}&l={limit}',
+      format: SourceJsonFormat.zerochan,
     ),
-    _domesticSearch(
-      id: 'bing_aggregate',
-      name: '必应图片',
-      baseUrl: 'https://zj.v.api.aa1.cn',
-      searchUrlTemplate: '/api/so-bing-img/?msg={keyword}&page={page}',
+    _json(
+      id: 'tbib',
+      name: 'TBIB (Safe)',
+      baseUrl: 'https://tbib.org',
+      template: '/index.php?page=dapi&s=post&q=index&json=1&tags={keyword}%20rating%3Asafe&limit={limit}&pid={page}',
+      format: SourceJsonFormat.gelbooru,
+      pageOffset: -1,
     ),
   ];
 
@@ -70,122 +71,27 @@ abstract final class BuiltinSources {
       'preview_url': 'link',
     },
     // JSON 图源不使用 HTML 提取规则，占位仅为满足字段必填。
-    extractRule: const ExtractRule(
-      listSelector: 'li',
-      imageUrl: FieldRule(),
-    ),
+    extractRule: const ExtractRule(listSelector: 'li', imageUrl: FieldRule()),
   );
 
-  /// Moebooru 引擎（yande.re / konachan.net）通用配置。
-  ///
-  /// 选择器按 Moebooru 官方模板核实：
-  /// - 列表容器 `ul#post-list-posts > li`（注意不是 `li.post`，那是 Danbooru 系）
-  /// - 缩略图 `a.thumb img.preview`（src；width/height 属性为预览等比尺寸）
-  /// - 原图 `a.directlink`（href）
-  /// - 标签不在独立节点里，藏在 `img.preview` 的 title 属性中：
-  ///   `Rating: safe Score: 12 Tags: a b c User: x` → 正则切出后按空白拆分
-  static SourceConfig _moebooru({
+  static SourceConfig _json({
     required String id,
     required String name,
     required String baseUrl,
-  }) {
-    return SourceConfig(
-      id: id,
-      name: name,
-      baseUrl: baseUrl,
-      // Moebooru 支持 limit 参数（每页条数），一次多拉减少分页请求次数。
-      searchUrlTemplate: '/post?tags={keyword}&page={page}&limit={limit}',
-      perPage: 100,
-      enabled: true,
-      sourceType: SourceType.html,
-      extractRule: ExtractRule(
-        listSelector: 'ul#post-list-posts > li',
-        imageUrl: const FieldRule(selector: 'a.directlink', attribute: 'href'),
-        thumbnailUrl:
-            const FieldRule(selector: 'a.thumb img.preview', attribute: 'src'),
-        width: const FieldRule(
-          selector: 'a.thumb img.preview',
-          attribute: 'width',
-        ),
-        height: const FieldRule(
-          selector: 'a.thumb img.preview',
-          attribute: 'height',
-        ),
-        sourcePage: const FieldRule(selector: 'a.thumb', attribute: 'href'),
-        tags: FieldRule(
-          selector: 'a.thumb img.preview',
-          attribute: 'title',
-          regex: RegExp(r'Tags:\s*(.*?)(?:\s*User:.*)?$'),
-        ),
-      ),
-    );
-  }
-
-  /// 国内可直连的聚合搜索图源（开发调试用）。
-  ///
-  /// **第三方聚合 API，仅用于开发调试，不建议作为正式产品主力图源**；
-  /// 走现有 sourceType=json 解析分支，仅字段映射，无独立解析器。
-  ///
-  /// 实测（2026-09-10）：
-  /// - 百度接口 `/api/so-baidu-img/` ✓ 正常：`{"code":"200","data":[
-  ///   {"oriTitle":"…","hoverUrl":"原图","thumbnailUrl":"缩略图",
-  ///    "width":…,"height":…}]}` → 列表键 data、原图 hoverUrl、
-  ///   缩略图 thumbnailUrl（width/height 为标准键直接读取）；
-  /// - 必应接口 `/api/so-bing-img/` **当前 404（源站下架）**，作为备用
-  ///   图源保留配置，源站恢复即用。
-  /// 异常处理复用现有体系（404/解析失败等既有文案）。
-  static SourceConfig _domesticSearch({
-    required String id,
-    required String name,
-    required String baseUrl,
-    required String searchUrlTemplate,
-  }) {
-    return SourceConfig(
-      id: id,
-      name: name,
-      baseUrl: baseUrl,
-      searchUrlTemplate: searchUrlTemplate,
-      enabled: true,
-      // 国内直连图源：搜索请求不走 Web CORS 代理
-      // （否则会命中不可用的 corsproxy.io 导致 401）。
-      useWebCorsProxy: false,
-      sourceType: SourceType.json,
-      jsonListKey: 'data',
-      jsonFieldMapping: const <String, String>{
-        'file_url': 'hoverUrl',
-        'preview_url': 'thumbnailUrl',
-      },
-      // JSON 图源不使用 HTML 提取规则，占位仅为满足字段必填。
-      extractRule: const ExtractRule(
-        listSelector: 'li',
-        imageUrl: FieldRule(),
-      ),
-    );
-  }
-
-  /// JSON 接口图源（按 Moebooru 标准 post.json 响应结构解析）。
-  ///
-  /// 注意：Safebooru / Realbooru 实际并非 Moebooru 引擎，
-  /// 其真实接口为 dapi 且响应结构不同；上线验证若返回 404/解析失败，
-  /// 只需按站点真实接口修改 searchUrlTemplate（解析器按 Moebooru 结构）。
-  static SourceConfig _moebooruJson({
-    required String id,
-    required String name,
-    required String baseUrl,
-  }) {
-    return SourceConfig(
-      id: id,
-      name: name,
-      baseUrl: baseUrl,
-      searchUrlTemplate: '/post.json?tags={keyword}&page={page}&limit={limit}',
-      perPage: 100,
-      enabled: true,
-      sourceType: SourceType.json,
-      // JSON 图源不使用 HTML 提取规则，占位仅为满足字段必填。
-      extractRule: const ExtractRule(
-        listSelector: 'li',
-        imageUrl: FieldRule(),
-      ),
-    );
-  }
+    required String template,
+    required SourceJsonFormat format,
+    int pageOffset = 0,
+  }) => SourceConfig(
+    id: id,
+    name: name,
+    baseUrl: baseUrl,
+    searchUrlTemplate: template,
+    sourceType: SourceType.json,
+    jsonFormat: format,
+    pageOffset: pageOffset,
+    perPage: 24,
+    timeout: const Duration(seconds: 20),
+    userAgent: 'Kirisaki/1.0 (image search client)',
+    extractRule: const ExtractRule(listSelector: 'li', imageUrl: FieldRule()),
+  );
 }

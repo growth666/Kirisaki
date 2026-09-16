@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 
 import '../../../../core/cache/thumbnail_memory_cache.dart';
 import '../../../../core/network/http_client_factory.dart';
+import '../../../../core/network/proxy_settings_service.dart';
 import '../../../../core/source/source_parse_service.dart';
 
 /// 带内存缓存的缩略图组件。
@@ -49,11 +50,28 @@ class _ThumbnailImageState extends State<ThumbnailImage> {
 
   Uint8List? _bytes; // 已加载的图片字节（命中缓存或请求成功）
   bool _failed = false; // 请求失败标记（展示错误图标占位）
+  int _generation = 0;
 
   @override
   void initState() {
     super.initState();
+    ProxySettingsService.instance.addListener(_proxyChanged);
     _load();
+  }
+
+  void _proxyChanged() {
+    if (_bytes == null) {
+      setState(() => _failed = false);
+      _load();
+    }
+  }
+
+  @override
+  void dispose() {
+    _generation++;
+    ProxySettingsService.instance.removeListener(_proxyChanged);
+    if (widget.client == null) _client.close();
+    super.dispose();
   }
 
   @override
@@ -61,8 +79,7 @@ class _ThumbnailImageState extends State<ThumbnailImage> {
     super.didUpdateWidget(oldWidget);
     // 列表项复用（如收藏页新收藏导致整体移位）时 url 变化，
     // 必须重置图片字节并重新加载，否则会显示上一项的旧图。
-    if (oldWidget.url != widget.url ||
-        oldWidget.useProxy != widget.useProxy) {
+    if (oldWidget.url != widget.url || oldWidget.useProxy != widget.useProxy) {
       _bytes = null;
       _failed = false;
       _load();
@@ -79,8 +96,8 @@ class _ThumbnailImageState extends State<ThumbnailImage> {
   }
 
   Future<void> _load() async {
-    final String key =
-        widget.useProxy ? _displayUrl(widget.url) : widget.url;
+    final generation = ++_generation;
+    final String key = widget.useProxy ? _displayUrl(widget.url) : widget.url;
     // 命中内存缓存：直接展示，不发请求。
     final Uint8List? cached = _cache.get(key);
     if (cached != null) {
@@ -98,12 +115,12 @@ class _ThumbnailImageState extends State<ThumbnailImage> {
       final Uint8List bytes = response.bodyBytes;
       // 仅缩略图写入内存缓存（原图不走本组件）。
       _cache.put(key, bytes);
-      if (!mounted) {
+      if (!mounted || generation != _generation) {
         return;
       }
       setState(() => _bytes = bytes);
     } catch (_) {
-      if (!mounted) {
+      if (!mounted || generation != _generation) {
         return;
       }
       setState(() => _failed = true);
@@ -121,10 +138,7 @@ class _ThumbnailImageState extends State<ThumbnailImage> {
     return ColoredBox(
       color: theme.colorScheme.surfaceContainerHighest,
       child: _failed
-          ? Icon(
-              Icons.broken_image_outlined,
-              color: theme.colorScheme.outline,
-            )
+          ? Icon(Icons.broken_image_outlined, color: theme.colorScheme.outline)
           : null,
     );
   }

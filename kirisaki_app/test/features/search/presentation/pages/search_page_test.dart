@@ -14,40 +14,12 @@ import 'package:kirisaki_app/features/search/presentation/pages/search_page.dart
 
 /// 按 Moebooru 真实结构编写的 fixture（与 BuiltinSources 的选择器对应）。
 const String _moebooruFixture = '''
-<div id="post-list">
-  <ul id="post-list-posts">
-    <li id="p101" class="javascript-hide" style="width: 160px;">
-      <div class="inner" style="width: 150px; height: 150px;">
-        <a class="thumb" href="/post/show/101">
-          <img src="/data/preview/a1.jpg" class="preview"
-               alt="Rating: safe Score: 5 Tags: blue_sky cloud User: alice"
-               title="Rating: safe Score: 5 Tags: blue_sky cloud User: alice"
-               width="150" height="100">
-        </a>
-      </div>
-      <a class="directlink largeimg" href="/image/original/a1.jpg"></a>
-    </li>
-    <li id="p102" class="javascript-hide" style="width: 160px;">
-      <div class="inner" style="width: 150px; height: 150px;">
-        <a class="thumb" href="/post/show/102">
-          <img src="/data/preview/b2.jpg" class="preview"
-               alt="Rating: safe Score: 3 Tags: night User: bob"
-               title="Rating: safe Score: 3 Tags: night User: bob"
-               width="150" height="150">
-        </a>
-      </div>
-      <a class="directlink smallimg" href="/image/original/b2.jpg"></a>
-    </li>
-  </ul>
-</div>
+[{"id":101,"file_url":"https://safebooru.org/image/original/a1.jpg","preview_url":"https://safebooru.org/data/preview/a1.jpg","width":150,"height":100,"tags":"blue_sky cloud"},
+{"id":102,"file_url":"https://safebooru.org/image/original/b2.jpg","preview_url":"https://safebooru.org/data/preview/b2.jpg","width":150,"height":150,"tags":"night"}]
 ''';
 
 /// 空结果 fixture：列表容器存在但没有任何 post 节点（对应"没有更多"）。
-const String _emptyFixture = '''
-<div id="post-list">
-  <ul id="post-list-posts"></ul>
-</div>
-''';
+const String _emptyFixture = '[]';
 
 /// alcy.cc 推荐接口 fixture（实测响应结构：data 数组 + link 字段）。
 const String _alcyFixture = '''
@@ -213,7 +185,7 @@ void main() {
 
     final SourceParseService service = SourceParseService(
       client: MockClient((http.Request request) async {
-        final int page = int.parse(request.url.queryParameters['page'] ?? '1');
+        final int page = int.parse(request.url.queryParameters['pid'] ?? '0') + 1;
         return http.Response(page == 1 ? _moebooruFixture : _emptyFixture, 200);
       }),
     );
@@ -242,7 +214,7 @@ void main() {
     int pageOneRequests = 0;
     final SourceParseService service = SourceParseService(
       client: MockClient((http.Request request) async {
-        final int page = int.parse(request.url.queryParameters['page'] ?? '1');
+        final int page = int.parse(request.url.queryParameters['pid'] ?? '0') + 1;
         if (page == 1) {
           pageOneRequests++;
         }
@@ -296,14 +268,16 @@ void main() {
       find
           .descendant(
             of: find.byType(DropdownMenu<SourceConfig>),
-            matching: find.text('yande.re'),
+            matching: find.text('Safebooru'),
           )
           .first,
     );
     await tester.pumpAndSettle();
     // 直接点击菜单项组件（last 为展开 overlay 中的可见项，
     // 隐藏测量层中的副本位于树序靠前）。
-    await tester.tap(find.widgetWithText(MenuItemButton, 'konachan.net').last);
+    await tester.tap(
+      find.widgetWithText(MenuItemButton, 'Danbooru (Safe)').last,
+    );
     await tester.pumpAndSettle();
 
     // 切换图源：列表清空、回到初始提示。
@@ -377,20 +351,20 @@ void main() {
 
     // 初始：默认图源 yande.re 的 chip 选中。
     final ChoiceChip yandeChip = tester.widget<ChoiceChip>(
-      find.widgetWithText(ChoiceChip, 'yande.re'),
+      find.widgetWithText(ChoiceChip, 'Safebooru'),
     );
     expect(yandeChip.selected, isTrue);
 
-    await tester.tap(find.widgetWithText(ChoiceChip, 'konachan.net'));
+    await tester.tap(find.widgetWithText(ChoiceChip, 'Danbooru (Safe)'));
     await tester.pump();
 
     final ChoiceChip konachanChip = tester.widget<ChoiceChip>(
-      find.widgetWithText(ChoiceChip, 'konachan.net'),
+      find.widgetWithText(ChoiceChip, 'Danbooru (Safe)'),
     );
     expect(konachanChip.selected, isTrue);
 
     final ChoiceChip yandeChipAfter = tester.widget<ChoiceChip>(
-      find.widgetWithText(ChoiceChip, 'yande.re'),
+      find.widgetWithText(ChoiceChip, 'Safebooru'),
     );
     expect(yandeChipAfter.selected, isFalse);
   });

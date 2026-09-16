@@ -68,6 +68,16 @@ class SourceJsonImporter {
       );
     }
     final Object? perPage = decoded['perPage'];
+    final jsonFormat = decoded['jsonFormat'];
+    if (jsonFormat != null &&
+        !SourceJsonFormat.values.any((v) => v.name == jsonFormat)) {
+      return const SourceImportResult.failure('jsonFormat 取值非法');
+    }
+    if (decoded['pageOffset'] != null &&
+        (decoded['pageOffset'] is! int ||
+            (decoded['pageOffset'] as int) < -1)) {
+      return const SourceImportResult.failure('pageOffset 必须是大于等于 -1 的整数');
+    }
     if (perPage != null && (perPage is! int || perPage <= 0)) {
       return SourceImportResult.failure('perPage 必须是正整数');
     }

@@ -8,8 +8,18 @@ import 'package:shared_preferences_platform_interface/in_memory_shared_preferenc
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 
 import 'package:kirisaki_app/core/favorite/favorite_service.dart';
+import 'package:kirisaki_app/core/download/image_save_service.dart';
 import 'package:kirisaki_app/core/source/image_item.dart';
 import 'package:kirisaki_app/features/preview/presentation/pages/image_preview_page.dart';
+
+class _FailedDownload implements ImageSaveService {
+  const _FailedDownload();
+  @override
+  Future<ImageSaveResult> saveImage({
+    required String imageUrl,
+    String? fileName,
+  }) async => const ImageSaveResult.failure('下载失败：HTTP 400');
+}
 
 void main() {
   setUpAll(() {
@@ -17,9 +27,9 @@ void main() {
     // 测试环境无插件实现，mock 通道返回系统临时目录。
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(
-      const MethodChannel('plugins.flutter.io/path_provider'),
-      (MethodCall call) async => Directory.systemTemp.path,
-    );
+          const MethodChannel('plugins.flutter.io/path_provider'),
+          (MethodCall call) async => Directory.systemTemp.path,
+        );
   });
 
   testWidgets('渲染原图区域与标签', (WidgetTester tester) async {
@@ -55,10 +65,7 @@ void main() {
     // 在图片区域中心派发向上滚动事件（放大）。
     final Offset center = tester.getCenter(find.byType(InteractiveViewer));
     tester.binding.handlePointerEvent(
-      PointerScrollEvent(
-        position: center,
-        scrollDelta: const Offset(0, -100),
-      ),
+      PointerScrollEvent(position: center, scrollDelta: const Offset(0, -100)),
     );
     await tester.pump();
 
@@ -81,12 +88,14 @@ void main() {
     expect(find.text('未找到图片信息'), findsOneWidget);
   });
 
-  testWidgets('下载按钮在原生平台走 io 下载服务（失败反馈复用 SnackBar）', (WidgetTester tester) async {
+  testWidgets('下载服务失败时显示 SnackBar', (WidgetTester tester) async {
     const ImageItem item = ImageItem(
       imageUrl: 'https://example.test/image/a.jpg',
     );
     await tester.pumpWidget(
-      const MaterialApp(home: ImagePreviewPage(item: item)),
+      const MaterialApp(
+        home: ImagePreviewPage(item: item, downloadService: _FailedDownload()),
+      ),
     );
     await tester.pump();
 
@@ -107,7 +116,9 @@ void main() {
     );
 
     await tester.pumpWidget(
-      MaterialApp(home: ImagePreviewPage(item: item, favoriteService: service)),
+      MaterialApp(
+        home: ImagePreviewPage(item: item, favoriteService: service),
+      ),
     );
     await tester.pump();
 
@@ -167,8 +178,11 @@ void main() {
 
     test('焦点缩放保持焦点位置不变', () {
       const Offset focal = Offset(120, 80);
-      final Matrix4 zoomed =
-          zoomMatrixAt(Matrix4.identity(), 2.0, focal: focal);
+      final Matrix4 zoomed = zoomMatrixAt(
+        Matrix4.identity(),
+        2.0,
+        focal: focal,
+      );
 
       final Offset mapped = MatrixUtils.transformPoint(zoomed, focal);
       expect(mapped.dx, closeTo(focal.dx, 1e-6));
@@ -178,10 +192,7 @@ void main() {
     test('非法因子返回原矩阵', () {
       final Matrix4 identity = Matrix4.identity();
       expect(
-        identical(
-          zoomMatrixAt(identity, 0, focal: Offset.zero),
-          identity,
-        ),
+        identical(zoomMatrixAt(identity, 0, focal: Offset.zero), identity),
         isTrue,
       );
     });

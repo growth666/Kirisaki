@@ -51,6 +51,7 @@ class _SearchPageState extends State<SearchPage>
   int _requestGeneration = 0;
   String? _sourceError;
   bool _sourcesReady = false;
+  bool _openingPreview = false;
   SourceConfig? _selectedSource;
 
   final List<ImageItem> _items = <ImageItem>[];
@@ -89,6 +90,7 @@ class _SearchPageState extends State<SearchPage>
 
   @override
   void dispose() {
+    if (widget.service == null) _service.close();
     _sourceService.removeListener(_onSourcesChanged);
     SearchHistoryService.instance.removeListener(_onHistoryQuickSearch);
     _showBackToTopNotifier.dispose();
@@ -275,12 +277,27 @@ class _SearchPageState extends State<SearchPage>
     });
   }
 
-  void _openPreview(ImageItem item) {
-    // url 参数兼容保留，extra 携带完整 ImageItem（含标签）供预览页渲染。
-    context.push(
-      '/preview?url=${Uri.encodeComponent(item.imageUrl)}',
-      extra: item,
-    );
+  Future<void> _openPreview(ImageItem item) async {
+    if (_openingPreview) return;
+    final generation = _requestGeneration;
+    setState(() => _openingPreview = true);
+    try {
+      final resolved = await _service.resolveImage(item);
+      if (!mounted || generation != _requestGeneration) return;
+      final index = _items.indexOf(item);
+      if (index >= 0) _items[index] = resolved;
+      // url 参数兼容保留，extra 携带完整 ImageItem（含标签）供预览页渲染。
+      context.push(
+        '/preview?url=${Uri.encodeComponent(resolved.imageUrl)}',
+        extra: resolved,
+      );
+    } catch (error) {
+      if (mounted && generation == _requestGeneration) {
+        _showSnackBar('获取原图失败：$error');
+      }
+    } finally {
+      if (mounted) setState(() => _openingPreview = false);
+    }
   }
 
   /// 加载推荐流：无需关键词，复用现有状态机/三态/分页逻辑。
@@ -371,6 +388,7 @@ class _SearchPageState extends State<SearchPage>
       body: Column(
         children: [
           _buildFloatingHeader(),
+          if (_openingPreview) const LinearProgressIndicator(),
           if (_sourceError != null)
             ListTile(
               title: Text(_sourceError!),

@@ -9,6 +9,7 @@ class ImageItem {
     this.sourcePage,
     this.tags = const <String>[],
     this.useProxy = true,
+    this.detailUrl,
   });
 
   /// 原图地址（下载能力预留字段，本轮不实现下载逻辑）。
@@ -36,29 +37,34 @@ class ImageItem {
   /// 国内直连图源为 false，其图片在 Web 端直接加载）。
   final bool useProxy;
 
+  /// Zerochan search responses require a detail request before preview/download.
+  final String? detailUrl;
+
   /// 序列化为 JSON 对象（收藏持久化用）。
   Map<String, Object?> toJson() => <String, Object?>{
-        'imageUrl': imageUrl,
-        'thumbnailUrl': thumbnailUrl,
-        'previewUrl': previewUrl,
-        'width': width,
-        'height': height,
-        'sourcePage': sourcePage,
-        'tags': tags,
-        'useProxy': useProxy,
-      };
+    'imageUrl': imageUrl,
+    'thumbnailUrl': thumbnailUrl,
+    'previewUrl': previewUrl,
+    'width': width,
+    'height': height,
+    'sourcePage': sourcePage,
+    'tags': tags,
+    'useProxy': useProxy,
+    'detailUrl': detailUrl,
+  };
 
   /// 从 JSON 对象恢复；缺失字段取默认值。
   factory ImageItem.fromJson(Map<String, Object?> json) => ImageItem(
-        imageUrl: json['imageUrl'] as String,
-        thumbnailUrl: json['thumbnailUrl'] as String?,
-        previewUrl: json['previewUrl'] as String?,
-        width: json['width'] as int?,
-        height: json['height'] as int?,
-        sourcePage: json['sourcePage'] as String?,
-        tags: (json['tags'] as List<Object?>? ?? const <Object?>[])
-            .map((Object? t) => '$t')
-            .toList(),
-        useProxy: json['useProxy'] as bool? ?? true,
-      );
+    imageUrl: json['imageUrl'] as String,
+    thumbnailUrl: json['thumbnailUrl'] as String?,
+    previewUrl: json['previewUrl'] as String?,
+    width: json['width'] as int?,
+    height: json['height'] as int?,
+    sourcePage: json['sourcePage'] as String?,
+    tags: (json['tags'] as List<Object?>? ?? const <Object?>[])
+        .map((Object? t) => '$t')
+        .toList(),
+    useProxy: json['useProxy'] as bool? ?? true,
+    detailUrl: json['detailUrl'] as String?,
+  );
 }

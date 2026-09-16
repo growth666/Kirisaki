@@ -7,6 +7,8 @@ enum SourceType {
   json,
 }
 
+enum SourceJsonFormat { moebooru, gelbooru, danbooru, zerochan }
+
 /// 图源配置。
 ///
 /// 描述一个图源站点的搜索地址模板与 HTML 提取规则，
@@ -27,6 +29,8 @@ class SourceConfig {
     this.requiresKeyword = true,
     this.jsonListKey,
     this.jsonFieldMapping,
+    this.jsonFormat = SourceJsonFormat.moebooru,
+    this.pageOffset = 0,
   });
 
   /// 默认请求 UA（部分图源会拦截 Dart 默认 UA）。
@@ -78,6 +82,8 @@ class SourceConfig {
 
   /// JSON 字段映射：解析器标准键 → 响应键（如 {'file_url': 'link'}）。
   final Map<String, String>? jsonFieldMapping;
+  final SourceJsonFormat jsonFormat;
+  final int pageOffset;
 
   SourceConfig copyWith({bool? enabled}) =>
       SourceConfig.fromJson({...toJson(), 'enabled': enabled ?? this.enabled});
@@ -98,6 +104,8 @@ class SourceConfig {
     'requiresKeyword': requiresKeyword,
     'jsonListKey': jsonListKey,
     'jsonFieldMapping': jsonFieldMapping,
+    'jsonFormat': jsonFormat.name,
+    'pageOffset': pageOffset,
   };
 
   /// 从 JSON 对象恢复；缺失字段取默认值。
@@ -123,6 +131,11 @@ class SourceConfig {
     jsonFieldMapping: (json['jsonFieldMapping'] as Map<String, Object?>?)?.map(
       (String k, Object? v) => MapEntry<String, String>(k, '$v'),
     ),
+    jsonFormat: SourceJsonFormat.values.firstWhere(
+      (v) => v.name == json['jsonFormat'],
+      orElse: () => SourceJsonFormat.moebooru,
+    ),
+    pageOffset: json['pageOffset'] as int? ?? 0,
   );
 }
 

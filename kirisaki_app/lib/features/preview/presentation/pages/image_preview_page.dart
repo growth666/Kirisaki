@@ -1,11 +1,12 @@
 import 'dart:math' as math;
 
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:flutter/gestures.dart' show PointerScrollEvent, PointerSignalEvent;
+import 'package:flutter/gestures.dart'
+    show PointerScrollEvent, PointerSignalEvent;
 import 'package:flutter/material.dart';
 
 import '../../../../core/download/image_downloader.dart';
+import '../../../../core/network/original_image.dart';
 import '../../../../core/favorite/favorite_service.dart';
 import '../../../../core/profile/download_service.dart';
 import '../../../../core/profile/history_service.dart';
@@ -46,6 +47,7 @@ class ImagePreviewPage extends StatelessWidget {
     this.imageUrl,
     this.item,
     this.favoriteService,
+    this.downloadService,
   });
 
   /// 兼容旧路由参数：仅图片地址（测试与深链场景使用）。
@@ -56,10 +58,12 @@ class ImagePreviewPage extends StatelessWidget {
 
   /// 注入的收藏服务（测试用），默认使用全局单例。
   final FavoriteService? favoriteService;
+  final ImageSaveService? downloadService;
 
   @override
   Widget build(BuildContext context) {
-    final ImageItem? resolved = item ??
+    final ImageItem? resolved =
+        item ??
         (imageUrl != null && imageUrl!.isNotEmpty
             ? ImageItem(imageUrl: imageUrl!)
             : null);
@@ -68,7 +72,8 @@ class ImagePreviewPage extends StatelessWidget {
         title: const Text('图片预览'),
         actions: [
           // 下载入口：所有图片（含推荐流）通用，走平台下载服务。
-          if (resolved != null) _DownloadButton(item: resolved),
+          if (resolved != null)
+            _DownloadButton(item: resolved, service: downloadService),
           if (resolved != null)
             _FavoriteButton(
               item: resolved,
@@ -85,9 +90,10 @@ class ImagePreviewPage extends StatelessWidget {
 
 /// 下载按钮：调用平台下载服务（Web 浏览器下载 / 其他平台 stub）。
 class _DownloadButton extends StatelessWidget {
-  const _DownloadButton({required this.item});
+  const _DownloadButton({required this.item, this.service});
 
   final ImageItem item;
+  final ImageSaveService? service;
 
   @override
   Widget build(BuildContext context) {
@@ -95,8 +101,10 @@ class _DownloadButton extends StatelessWidget {
       tooltip: '下载',
       icon: const Icon(Icons.download_outlined),
       onPressed: () async {
-        final ImageSaveResult result = await createImageDownloadService()
-            .saveImage(imageUrl: item.imageUrl);
+        final ImageSaveResult result =
+            await (service ?? createImageDownloadService()).saveImage(
+              imageUrl: item.imageUrl,
+            );
         // 下载成功自动记录到下载记录（持久化静默容错）。
         if (result.isSuccess) {
           DownloadService.instance.record(item);
@@ -106,11 +114,15 @@ class _DownloadButton extends StatelessWidget {
         }
         ScaffoldMessenger.of(context)
           ..hideCurrentSnackBar()
-          ..showSnackBar(SnackBar(
-            content: Text(
-              result.isSuccess ? (result.message ?? '已开始下载') : result.errorMessage!,
+          ..showSnackBar(
+            SnackBar(
+              content: Text(
+                result.isSuccess
+                    ? (result.message ?? '已开始下载')
+                    : result.errorMessage!,
+              ),
             ),
-          ));
+          );
       },
     );
   }
@@ -225,8 +237,7 @@ class _PreviewBodyState extends State<_PreviewBody> {
       return;
     }
     // 每 100 逻辑像素滚轮行程缩放 1.1 倍。
-    final double factor =
-        math.pow(1.1, -event.scrollDelta.dy / 100).toDouble();
+    final double factor = math.pow(1.1, -event.scrollDelta.dy / 100).toDouble();
     _transformationController.value = zoomMatrixAt(
       _transformationController.value,
       factor,
@@ -238,7 +249,8 @@ class _PreviewBodyState extends State<_PreviewBody> {
   /// 开关见 [SourceParseService.webCorsProxyEnabled] 与 ImageItem.useProxy）。
   static String _displayUrl(ImageItem item) {
     if (kIsWeb && item.useProxy && SourceParseService.webCorsProxyEnabled) {
-      return SourceParseService.buildProxyUri(Uri.parse(item.imageUrl)).toString();
+      return SourceParseService.buildProxyUri(Uri.parse(item.imageUrl))
+          .toString();
     }
     return item.imageUrl;
   }
@@ -259,17 +271,7 @@ class _PreviewBodyState extends State<_PreviewBody> {
               minScale: 1.0,
               maxScale: 8.0,
               clipBehavior: Clip.hardEdge,
-              child: Center(
-                child: CachedNetworkImage(
-                  imageUrl: _displayUrl(item),
-                  fit: BoxFit.contain,
-                  placeholder: (BuildContext context, String url) =>
-                      const Center(child: CircularProgressIndicator()),
-                  errorWidget:
-                      (BuildContext context, String url, Object error) =>
-                          const _ImageErrorPlaceholder(),
-                ),
-              ),
+              child: Center(child: OriginalImage(url: _displayUrl(item))),
             ),
           ),
         ),
@@ -286,8 +288,9 @@ class _PreviewBodyState extends State<_PreviewBody> {
                   for (final String tag in item.tags)
                     Text(
                       '#$tag',
-                      style: theme.textTheme.labelMedium
-                          ?.copyWith(color: theme.colorScheme.primary),
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: theme.colorScheme.primary,
+                      ),
                     ),
                 ],
               ),
@@ -301,35 +304,10 @@ class _PreviewBodyState extends State<_PreviewBody> {
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             textAlign: TextAlign.center,
-            style: theme.textTheme.bodySmall
-                ?.copyWith(color: theme.colorScheme.outline),
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.outline,
+            ),
           ),
-        ),
-      ],
-    );
-  }
-}
-
-/// 大图加载失败占位组件。
-class _ImageErrorPlaceholder extends StatelessWidget {
-  const _ImageErrorPlaceholder();
-
-  @override
-  Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(
-          Icons.broken_image_outlined,
-          size: 64,
-          color: theme.colorScheme.outline,
-        ),
-        const SizedBox(height: 12),
-        Text(
-          '图片加载失败',
-          style: theme.textTheme.bodyMedium
-              ?.copyWith(color: theme.colorScheme.outline),
         ),
       ],
     );
@@ -346,8 +324,9 @@ class _MissingView extends StatelessWidget {
     return Center(
       child: Text(
         '未找到图片信息',
-        style: theme.textTheme.bodyMedium
-            ?.copyWith(color: theme.colorScheme.outline),
+        style: theme.textTheme.bodyMedium?.copyWith(
+          color: theme.colorScheme.outline,
+        ),
       ),
     );
   }

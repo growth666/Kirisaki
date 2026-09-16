@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:html/dom.dart';
@@ -21,8 +22,7 @@ import 'source_parse_result.dart';
 /// [webCorsProxyEnabled]/[webCorsProxyPrefix] 的代理转发。
 class SourceParseService {
   /// 使用注入的 [client] 便于测试（默认经全局代理适配构建）。
-  SourceParseService({http.Client? client})
-      : _client = client ?? buildClient();
+  SourceParseService({http.Client? client}) : _client = client ?? buildClient();
 
   /// 未解析到图片时的错误信息（分页时可用作"没有更多"的判断）。
   static const String noImagesMessage = '未解析到图片，图源规则可能已失效';
@@ -41,6 +41,38 @@ class SourceParseService {
   static const String webCorsProxyPrefix = 'https://corsproxy.io/?url=';
 
   final http.Client _client;
+
+  void close() => _client.close();
+
+  Future<ImageItem> resolveImage(ImageItem item) async {
+    if (item.detailUrl == null) return item;
+    var uri = Uri.parse(item.detailUrl!);
+    if (kIsWeb && item.useProxy && webCorsProxyEnabled) {
+      uri = buildProxyUri(uri);
+    }
+    final response = await _client
+        .get(uri, headers: {'User-Agent': 'Kirisaki/1.0 (image search client)'})
+        .timeout(const Duration(seconds: 20));
+    if (response.statusCode != 200) {
+      throw FormatException('获取原图失败（HTTP ${response.statusCode}）');
+    }
+    final data = jsonDecode(utf8.decode(response.bodyBytes));
+    if (data is! Map<String, dynamic> || data['full'] is! String) {
+      throw const FormatException('图源未返回原图地址');
+    }
+    final full = Uri.tryParse(data['full'] as String);
+    if (full == null ||
+        !['http', 'https'].contains(full.scheme) ||
+        full.host.isEmpty) {
+      throw const FormatException('原图地址无效');
+    }
+    return ImageItem.fromJson({
+      ...item.toJson(),
+      'imageUrl': full.toString(),
+      'detailUrl': null,
+      'previewUrl': data['large'],
+    });
+  }
 
   /// 按图源配置搜索 [keyword]（第 [page] 页）并解析图片列表。
   Future<SourceParseResult> search(
@@ -77,7 +109,10 @@ class SourceParseService {
     final http.Response response;
     try {
       response = await _client
-          .get(requestUri, headers: <String, String>{'User-Agent': config.userAgent})
+          .get(
+            requestUri,
+            headers: <String, String>{'User-Agent': config.userAgent},
+          )
           .timeout(config.timeout);
     } on TimeoutException {
       return const SourceParseResult.failure('网络超时，请稍后重试');
@@ -88,22 +123,22 @@ class SourceParseService {
     }
 
     if (response.statusCode == 401) {
-      return const SourceParseResult.failure(
-        '未授权访问（401），图源可能需要登录凭证或反爬校验',
-      );
+      return const SourceParseResult.failure('未授权访问（401），图源可能需要登录凭证或反爬校验');
     }
     if (response.statusCode == 429) {
-      return const SourceParseResult.failure(
-        '请求过于频繁，已被图源限流（429），请稍后再试',
-      );
+      return const SourceParseResult.failure('请求过于频繁，已被图源限流（429），请稍后再试');
     }
     if (response.statusCode == 404) {
       return const SourceParseResult.failure('页面不存在（404），请检查图源地址配置');
     }
+    if (response.statusCode == 403) {
+      return const SourceParseResult.failure('图源拒绝访问（403），可能需要代理或浏览器验证');
+    }
+    if (response.statusCode == 422) {
+      return const SourceParseResult.failure('搜索条件不被图源接受（422），请减少标签或修改关键词');
+    }
     if (response.statusCode != 200) {
-      return SourceParseResult.failure(
-        '服务器响应异常（HTTP ${response.statusCode}）',
-      );
+      return SourceParseResult.failure('服务器响应异常（HTTP ${response.statusCode}）');
     }
 
     try {
@@ -111,11 +146,12 @@ class SourceParseService {
       // HTML 图源沿用原 CSS 选择器解析逻辑（原代码不变）。
       final List<ImageItem> items = config.sourceType == SourceType.json
           ? MoebooruJsonParser.parse(
-              response.body,
+              utf8.decode(response.bodyBytes),
               baseUri: Uri.parse(config.baseUrl),
               listKey: config.jsonListKey,
               fieldMapping: config.jsonFieldMapping,
               itemUseProxy: config.useWebCorsProxy,
+              format: config.jsonFormat,
             )
           : parseHtml(response.body, config);
       if (items.isEmpty) {
@@ -133,14 +169,16 @@ class SourceParseService {
   Uri buildSearchUri(SourceConfig config, String keyword, int page) {
     final String raw = config.searchUrlTemplate
         .replaceAll('{keyword}', Uri.encodeComponent(keyword))
-        .replaceAll('{page}', '$page')
+        .replaceAll('{page}', '${page + config.pageOffset}')
         .replaceAll('{limit}', '${config.perPage ?? ''}');
     return Uri.parse(config.baseUrl).resolveUri(Uri.parse(raw));
   }
 
   /// 为 [uri] 拼接 CORS 代理前缀（纯函数，便于测试与复用）。
   static Uri buildProxyUri(Uri uri) {
-    return Uri.parse('$webCorsProxyPrefix${Uri.encodeComponent(uri.toString())}');
+    return Uri.parse(
+      '$webCorsProxyPrefix${Uri.encodeComponent(uri.toString())}',
+    );
   }
 
   /// Web 端按开关为请求地址拼接代理前缀；原生平台（含 Android）原样返回。
@@ -157,27 +195,36 @@ class SourceParseService {
   /// 解析 HTML 提取图片列表；缺失图片地址的节点会被跳过。
   List<ImageItem> parseHtml(String htmlBody, SourceConfig config) {
     final Document document = html_parser.parse(htmlBody);
-    final List<Element> nodes =
-        document.querySelectorAll(config.extractRule.listSelector);
+    final List<Element> nodes = document.querySelectorAll(
+      config.extractRule.listSelector,
+    );
     final Uri base = Uri.parse(config.baseUrl);
     final List<ImageItem> items = <ImageItem>[];
     for (final Element node in nodes) {
-      final String? imageUrl =
-          _extractField(node, config.extractRule.imageUrl, base);
+      final String? imageUrl = _extractField(
+        node,
+        config.extractRule.imageUrl,
+        base,
+      );
       if (imageUrl == null || imageUrl.isEmpty) {
         continue;
       }
-      items.add(ImageItem(
-        imageUrl: imageUrl,
-        thumbnailUrl:
-            _extractField(node, config.extractRule.thumbnailUrl, base),
-        previewUrl: _extractField(node, config.extractRule.previewUrl, base),
-        width: _extractInt(node, config.extractRule.width),
-        height: _extractInt(node, config.extractRule.height),
-        sourcePage: _extractField(node, config.extractRule.sourcePage, base),
-        tags: _extractFieldList(node, config.extractRule.tags),
-        useProxy: config.useWebCorsProxy,
-      ));
+      items.add(
+        ImageItem(
+          imageUrl: imageUrl,
+          thumbnailUrl: _extractField(
+            node,
+            config.extractRule.thumbnailUrl,
+            base,
+          ),
+          previewUrl: _extractField(node, config.extractRule.previewUrl, base),
+          width: _extractInt(node, config.extractRule.width),
+          height: _extractInt(node, config.extractRule.height),
+          sourcePage: _extractField(node, config.extractRule.sourcePage, base),
+          tags: _extractFieldList(node, config.extractRule.tags),
+          useProxy: config.useWebCorsProxy,
+        ),
+      );
     }
     return items;
   }

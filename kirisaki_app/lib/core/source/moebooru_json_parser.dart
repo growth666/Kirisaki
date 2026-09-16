@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'image_item.dart';
+import 'source_config.dart';
 
 /// Moebooru 标准 `post.json` 响应解析器（纯解析工具，不做网络请求）。
 ///
@@ -33,13 +34,16 @@ abstract final class MoebooruJsonParser {
     String? listKey,
     Map<String, String>? fieldMapping,
     bool itemUseProxy = true,
+    SourceJsonFormat format = SourceJsonFormat.moebooru,
   }) {
     final Object? decoded = jsonDecode(body);
     final List<Object?> posts;
     if (decoded is List<Object?>) {
       posts = decoded;
     } else if (decoded is Map<String, Object?>) {
-      final Object? list = decoded[listKey ?? 'posts'];
+      final Object? list =
+          decoded[listKey ??
+              (format == SourceJsonFormat.zerochan ? 'items' : 'posts')];
       if (list is List<Object?>) {
         posts = list;
       } else {
@@ -54,8 +58,13 @@ abstract final class MoebooruJsonParser {
       if (entry is! Map<String, Object?>) {
         continue;
       }
-      final ImageItem? item =
-          _mapPost(entry, baseUri, fieldMapping, itemUseProxy);
+      final ImageItem? item = _mapPost(
+        entry,
+        baseUri,
+        fieldMapping,
+        itemUseProxy,
+        format,
+      );
       if (item != null) {
         items.add(item);
       }
@@ -68,7 +77,53 @@ abstract final class MoebooruJsonParser {
     Uri baseUri,
     Map<String, String>? fieldMapping,
     bool itemUseProxy,
+    SourceJsonFormat format,
   ) {
+    final id = post['id'];
+    if (format == SourceJsonFormat.zerochan) {
+      if (id is! int || post['tag'] is! String) return null;
+      final thumbnail = Uri.https(
+        's1.zerochan.net',
+        '/${(post['tag'] as String).replaceAll(' ', '.')}.600.$id.jpg',
+      ).toString();
+      final page = baseUri.resolve('/$id').toString();
+      return ImageItem(
+        imageUrl: page,
+        thumbnailUrl: thumbnail,
+        detailUrl: baseUri.resolve('/$id?json').toString(),
+        sourcePage: page,
+        width: _intField(post['width']),
+        height: _intField(post['height']),
+        tags: _parseTags(post['tags']),
+        useProxy: itemUseProxy,
+      );
+    }
+    post = Map<String, Object?>.of(post);
+    if (format == SourceJsonFormat.danbooru) {
+      post.addAll({
+        'preview_url': post['preview_file_url'],
+        'sample_url': post['large_file_url'],
+        'width': post['image_width'],
+        'height': post['image_height'],
+        'tags': post['tag_string'],
+      });
+    }
+    if (format == SourceJsonFormat.gelbooru &&
+        _stringField(post['file_url']) == null) {
+      final directory = post['directory'];
+      final image = _stringField(post['image']);
+      if (directory != null && image != null) {
+        post['file_url'] = baseUri
+            .resolve('/images/$directory/$image')
+            .toString();
+        final stem = image.contains('.')
+            ? image.substring(0, image.lastIndexOf('.'))
+            : image;
+        post['preview_url'] = baseUri
+            .resolve('/thumbnails/$directory/thumbnail_$stem.jpg')
+            .toString();
+      }
+    }
     // 字段映射：把映射目标（响应键）的值写入解析器标准键，
     // 例如 {'file_url': 'link'} → file_url 取 link 的值；
     // 默认无映射时行为与 Moebooru 原生结构完全一致。
@@ -91,14 +146,22 @@ abstract final class MoebooruJsonParser {
       return null;
     }
 
-    final Object? id = lookup['id'];
-    final String? sourcePage =
-        id == null ? null : baseUri.resolve('/post/show/$id').toString();
+    final String? sourcePage = id == null
+        ? null
+        : baseUri.resolve(switch (format) {
+            SourceJsonFormat.danbooru => '/posts/$id',
+            SourceJsonFormat.gelbooru => '/index.php?page=post&s=view&id=$id',
+            _ => '/post/show/$id',
+          }).toString();
 
     return ImageItem(
-      imageUrl: imageUrl,
-      thumbnailUrl: _stringField(lookup['preview_url']),
-      previewUrl: sampleUrl,
+      imageUrl: baseUri.resolve(imageUrl).toString(),
+      thumbnailUrl: _stringField(lookup['preview_url']) == null
+          ? null
+          : baseUri.resolve(lookup['preview_url'] as String).toString(),
+      previewUrl: sampleUrl == null
+          ? null
+          : baseUri.resolve(sampleUrl).toString(),
       width: _intField(lookup['width']),
       height: _intField(lookup['height']),
       sourcePage: sourcePage,

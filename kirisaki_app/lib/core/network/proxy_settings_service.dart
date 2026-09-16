@@ -60,21 +60,21 @@ class ProxySettingsService extends ChangeNotifier {
   }
 
   /// 保存配置（即存即生效 + 持久化）。
-  Future<void> save({required bool enabled, required String host, required int port}) async {
+  Future<void> save({
+    required bool enabled,
+    required String host,
+    required int port,
+  }) async {
+    final SharedPreferencesAsync? prefs = _ensurePrefs;
+    if (prefs == null) {
+      throw StateError('本地代理设置不可写');
+    }
+    await prefs.setString(hostKey, host.trim());
+    await prefs.setInt(portKey, port);
+    await prefs.setBool(enabledKey, enabled);
     _enabled = enabled;
     _host = host.trim();
     _port = port;
     notifyListeners();
-    final SharedPreferencesAsync? prefs = _ensurePrefs;
-    if (prefs == null) {
-      return;
-    }
-    try {
-      await prefs.setBool(enabledKey, _enabled);
-      await prefs.setString(hostKey, _host);
-      await prefs.setInt(portKey, _port);
-    } catch (_) {
-      // IO 异常静默。
-    }
   }
 }

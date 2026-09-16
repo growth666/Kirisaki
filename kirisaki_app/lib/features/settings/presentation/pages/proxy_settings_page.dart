@@ -22,6 +22,9 @@ class _ProxySettingsPageState extends State<ProxySettingsPage> {
       widget.service ?? ProxySettingsService.instance;
   final TextEditingController _hostController = TextEditingController();
   final TextEditingController _portController = TextEditingController();
+  bool _enabled = false;
+  bool _loading = true;
+  bool _saving = false;
 
   @override
   void initState() {
@@ -33,6 +36,8 @@ class _ProxySettingsPageState extends State<ProxySettingsPage> {
       setState(() {
         _hostController.text = _service.host;
         _portController.text = '${_service.port}';
+        _enabled = _service.enabled;
+        _loading = false;
       });
     });
   }
@@ -45,6 +50,8 @@ class _ProxySettingsPageState extends State<ProxySettingsPage> {
   }
 
   Future<void> _save() async {
+    if (_saving || _loading) return;
+    final host = _hostController.text.trim();
     final int? port = int.tryParse(_portController.text.trim());
     if (port == null || port <= 0 || port > 65535) {
       ScaffoldMessenger.of(context)
@@ -52,11 +59,24 @@ class _ProxySettingsPageState extends State<ProxySettingsPage> {
         ..showSnackBar(const SnackBar(content: Text('端口必须是 1~65535 的整数')));
       return;
     }
-    await _service.save(
-      enabled: _service.enabled,
-      host: _hostController.text.trim(),
-      port: port,
-    );
+    if (_enabled && (host.isEmpty || host.contains(RegExp(r'[\s/:]')))) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('请输入代理主机名或 IPv4 地址，不含协议和端口')),
+      );
+      return;
+    }
+    setState(() => _saving = true);
+    try {
+      await _service.save(enabled: _enabled, host: host, port: port);
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('保存代理失败：$error')));
+      }
+      return;
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
     if (!mounted) {
       return;
     }
@@ -77,15 +97,11 @@ class _ProxySettingsPageState extends State<ProxySettingsPage> {
             children: [
               SwitchListTile(
                 title: const Text('启用代理'),
-                subtitle: const Text('开启后所有 HTTP 请求走指定代理'),
-                value: _service.enabled,
-                onChanged: (bool value) {
-                  _service.save(
-                    enabled: value,
-                    host: _service.host,
-                    port: _service.port,
-                  );
-                },
+                subtitle: const Text('HTTP / mixed'),
+                value: _enabled,
+                onChanged: _loading || _saving
+                    ? null
+                    : (value) => setState(() => _enabled = value),
               ),
               const SizedBox(height: 8),
               TextField(
@@ -103,25 +119,22 @@ class _ProxySettingsPageState extends State<ProxySettingsPage> {
                 controller: _portController,
                 keyboardType: TextInputType.number,
                 decoration: const InputDecoration(
-                  labelText: '代理端口',
-                  hintText: '1080',
+                  labelText: 'HTTP / mixed 端口',
+                  hintText: '7890',
                   border: OutlineInputBorder(),
                 ),
               ),
               const SizedBox(height: 16),
               FilledButton.icon(
-                onPressed: _save,
+                onPressed: _loading || _saving ? null : _save,
                 icon: const Icon(Icons.save_outlined),
                 label: const Text('保存'),
               ),
               const SizedBox(height: 16),
               Text(
-                '说明：海外 booru 图源（yande.re/konachan.net 等）'
-                '需配置代理才能正常访问；国内图源无需代理即可使用。'
-                'Web 端浏览器不支持系统代理，仍走 CORS 代理开关。',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.outline,
-                    ),
+                'Android 的 127.0.0.1 指向手机自身。使用电脑代理时需填写电脑的局域网地址。',
+                style: Theme.of(context).textTheme.bodySmall
+                    ?.copyWith(color: Theme.of(context).colorScheme.outline),
               ),
             ],
           );

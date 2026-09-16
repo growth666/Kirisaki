@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 
 import '../network/http_client_factory.dart';
+import '../network/image_response.dart';
 import '../settings/settings_service.dart';
 import 'image_save_service.dart';
 
@@ -43,20 +44,21 @@ class IoImageDownloadService implements ImageSaveService {
   }
 
   /// 桌面端：拉取字节 → 写系统下载目录。
-  Future<ImageSaveResult> _saveToFile(
-    String imageUrl,
-    String? fileName,
-  ) async {
+  Future<ImageSaveResult> _saveToFile(String imageUrl, String? fileName) async {
+    final http.Client client = this.client ?? buildClient();
     try {
-      final http.Client client = this.client ?? buildClient();
-      final http.Response response = await client.get(Uri.parse(imageUrl));
+      final http.Response response = await fetchImageResponse(
+        client,
+        Uri.parse(imageUrl),
+      );
       if (response.statusCode != 200) {
         return ImageSaveResult.failure(
           '下载失败：服务器响应异常（HTTP ${response.statusCode}）',
         );
       }
       // 写入目录优先级：测试注入 > 用户自定义（设置页自选）> 系统默认。
-      final Directory? baseDir = downloadDirOverride ??
+      final Directory? baseDir =
+          downloadDirOverride ??
           _customDirOrNull() ??
           await getDownloadsDirectory();
       if (baseDir == null) {
@@ -69,6 +71,8 @@ class IoImageDownloadService implements ImageSaveService {
       return ImageSaveResult.success(message: '已保存到 ${file.path}');
     } catch (e) {
       return ImageSaveResult.failure('下载失败：$e');
+    } finally {
+      if (this.client == null) client.close();
     }
   }
 
@@ -77,9 +81,12 @@ class IoImageDownloadService implements ImageSaveService {
     String imageUrl,
     String? fileName,
   ) async {
+    final http.Client client = this.client ?? buildClient();
     try {
-      final http.Client client = this.client ?? buildClient();
-      final http.Response response = await client.get(Uri.parse(imageUrl));
+      final http.Response response = await fetchImageResponse(
+        client,
+        Uri.parse(imageUrl),
+      );
       if (response.statusCode != 200) {
         return ImageSaveResult.failure(
           '下载失败：服务器响应异常（HTTP ${response.statusCode}）',
@@ -87,8 +94,8 @@ class IoImageDownloadService implements ImageSaveService {
       }
       // 用户自选目录（SAF tree URI）随通道传入；未设置走 MediaStore 默认。
       final String? customDir = SettingsService.instance.downloadDir;
-      final String? treeUri = customDir != null &&
-              customDir.startsWith('content://')
+      final String? treeUri =
+          customDir != null && customDir.startsWith('content://')
           ? customDir
           : null;
       final String? path = await _channel.invokeMethod<String>(
@@ -101,11 +108,11 @@ class IoImageDownloadService implements ImageSaveService {
       );
       return ImageSaveResult.success(message: '已保存到 $path');
     } on MissingPluginException {
-      return const ImageSaveResult.failure(
-        '当前平台未接入下载通道（Android 原生端未就绪）',
-      );
+      return const ImageSaveResult.failure('当前平台未接入下载通道（Android 原生端未就绪）');
     } catch (e) {
       return ImageSaveResult.failure('下载失败：$e');
+    } finally {
+      if (this.client == null) client.close();
     }
   }
 
@@ -127,8 +134,7 @@ class IoImageDownloadService implements ImageSaveService {
       final int dot = name.lastIndexOf('.');
       final String stem = dot > 0 ? name.substring(0, dot) : name;
       final String ext = dot > 0 ? name.substring(dot) : '';
-      candidate =
-          File('${dir.path}${Platform.pathSeparator}$stem($i)$ext');
+      candidate = File('${dir.path}${Platform.pathSeparator}$stem($i)$ext');
       i++;
     }
     return candidate.path;
@@ -137,8 +143,9 @@ class IoImageDownloadService implements ImageSaveService {
   /// 从图片 URL 末段提取文件名；无扩展名时使用通用兜底名。
   static String _fileNameFromUrl(String url) {
     final Uri uri = Uri.parse(url);
-    final String? last =
-        uri.pathSegments.isNotEmpty ? uri.pathSegments.last : null;
+    final String? last = uri.pathSegments.isNotEmpty
+        ? uri.pathSegments.last
+        : null;
     if (last == null || last.isEmpty || !last.contains('.')) {
       return 'image.jpg';
     }
