@@ -38,6 +38,7 @@ class _SearchPageState extends State<SearchPage>
   late final SourceParseService _service =
       widget.service ?? SourceParseService();
   final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
   final ScrollController _scrollController = ScrollController();
 
   /// PageView 底部导航切换时保活：不重建、不丢滚动位置。
@@ -55,6 +56,7 @@ class _SearchPageState extends State<SearchPage>
   SourceConfig? _selectedSource;
 
   final List<ImageItem> _items = <ImageItem>[];
+  List<String> _suggestedTags = [];
   bool _loading = false; // 首页（重新搜索）加载中
   bool _loadingMore = false; // 分页加载中
   bool _hasMore = true;
@@ -96,6 +98,7 @@ class _SearchPageState extends State<SearchPage>
     _showBackToTopNotifier.dispose();
     _scrollController.dispose();
     _searchController.dispose();
+    _searchFocusNode.dispose();
     super.dispose();
   }
 
@@ -116,6 +119,7 @@ class _SearchPageState extends State<SearchPage>
   void _clearSearch() {
     _requestGeneration++;
     _items.clear();
+    _suggestedTags = [];
     _loading = false;
     _loadingMore = false;
     _page = 1;
@@ -187,6 +191,7 @@ class _SearchPageState extends State<SearchPage>
   }
 
   Future<void> _search() async {
+    _searchFocusNode.unfocus();
     if (!_sourcesReady) return;
     // 请求锁：加载中直接返回，防止连点搜索按钮重复发起请求。
     if (_loading) {
@@ -210,6 +215,7 @@ class _SearchPageState extends State<SearchPage>
       _error = null;
       _searched = true;
       _items.clear();
+      _suggestedTags = [];
       _page = 1;
       _hasMore = true;
       _lastKeyword = keyword;
@@ -227,6 +233,7 @@ class _SearchPageState extends State<SearchPage>
     setState(() {
       _loading = false;
       if (result.isSuccess) {
+        _suggestedTags = result.suggestedTags;
         _items.addAll(result.items);
         _hasMore = result.items.isNotEmpty;
       } else if (result.errorMessage == SourceParseService.noImagesMessage) {
@@ -236,7 +243,7 @@ class _SearchPageState extends State<SearchPage>
       }
     });
     // 搜索成功（关键词图源）后记录搜索历史（去重保留最新，持久化容错）。
-    if (result.isSuccess) {
+    if (result.isSuccess && result.items.isNotEmpty) {
       SearchHistoryService.instance.add(keyword);
     }
   }
@@ -279,11 +286,15 @@ class _SearchPageState extends State<SearchPage>
 
   Future<void> _openPreview(ImageItem item) async {
     if (_openingPreview) return;
+    // Clear the route's focus history so popping preview cannot refocus input.
+    _searchFocusNode.unfocus();
     final generation = _requestGeneration;
     setState(() => _openingPreview = true);
     try {
       final resolved = await _service.resolveImage(item);
       if (!mounted || generation != _requestGeneration) return;
+      // Detail resolution may take time; dismiss any focus acquired meanwhile.
+      _searchFocusNode.unfocus();
       final index = _items.indexOf(item);
       if (index >= 0) _items[index] = resolved;
       // url 参数兼容保留，extra 携带完整 ImageItem（含标签）供预览页渲染。
@@ -314,6 +325,7 @@ class _SearchPageState extends State<SearchPage>
       _error = null;
       _searched = true;
       _recommendMode = true;
+      _suggestedTags = [];
       _items.clear();
       _page = 1;
       _hasMore = true;
@@ -472,6 +484,7 @@ class _SearchPageState extends State<SearchPage>
             child: TextField(
               key: const Key('searchInput'),
               controller: _searchController,
+              focusNode: _searchFocusNode,
               textInputAction: TextInputAction.search,
               onSubmitted: (_) => _search(),
               decoration: const InputDecoration(
@@ -531,6 +544,31 @@ class _SearchPageState extends State<SearchPage>
       );
     }
     if (_items.isEmpty) {
+      if (_suggestedTags.isNotEmpty) {
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            children: [
+              const Text('该名字没有直接匹配的图片，请选择人物标签：'),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final tag in _suggestedTags)
+                    ActionChip(
+                      label: Text(tag),
+                      onPressed: () {
+                        _searchController.text = tag;
+                        _search();
+                      },
+                    ),
+                ],
+              ),
+            ],
+          ),
+        );
+      }
       return const _HintView(
         icon: Icons.image_not_supported_outlined,
         message: '没有找到相关图片，换个关键词试试',

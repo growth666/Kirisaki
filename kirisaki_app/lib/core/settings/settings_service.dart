@@ -11,10 +11,12 @@ class SettingsService extends ChangeNotifier {
 
   static const String themeModeKey = 'theme_mode';
   static const String downloadDirKey = 'download_dir';
+  static const String showAdultContentKey = 'show_adult_content';
 
   SharedPreferencesAsync? _prefs;
   ThemeMode _themeMode = ThemeMode.system;
   String? _downloadDir;
+  bool _showAdultContent = false;
 
   /// 当前主题模式（默认跟随系统）。
   ThemeMode get themeMode => _themeMode;
@@ -22,6 +24,7 @@ class SettingsService extends ChangeNotifier {
   /// 自定义下载位置（桌面为目录路径、Android 为 SAF tree URI；
   /// null = 系统默认下载目录）。Web 端无目录概念（下载时弹系统保存对话框）。
   String? get downloadDir => _downloadDir;
+  bool get showAdultContent => _showAdultContent;
 
   SharedPreferencesAsync? get _ensurePrefs {
     try {
@@ -47,10 +50,22 @@ class SettingsService extends ChangeNotifier {
       }
       // 下载位置独立于主题读取（主题未设置时同样要恢复）。
       _downloadDir = await prefs.getString(downloadDirKey);
+      _showAdultContent = await prefs.getBool(showAdultContentKey) ?? false;
       notifyListeners();
     } catch (_) {
       // 损坏数据容错。
     }
+  }
+
+  Future<void> setShowAdultContent(bool value) async {
+    if (_showAdultContent == value) return;
+    _showAdultContent = value;
+    notifyListeners();
+    final prefs = _ensurePrefs;
+    if (prefs == null) return;
+    try {
+      await prefs.setBool(showAdultContentKey, value);
+    } catch (_) {}
   }
 
   /// 设置主题模式并持久化（全局页面即时生效）。

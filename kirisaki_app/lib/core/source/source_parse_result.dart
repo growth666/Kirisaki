@@ -5,6 +5,7 @@ class SourceParseResult {
   const SourceParseResult._({
     this.items = const <ImageItem>[],
     this.errorMessage,
+    this.suggestedTags = const <String>[],
   });
 
   /// 解析成功。
@@ -12,7 +13,12 @@ class SourceParseResult {
 
   /// 解析失败，[errorMessage] 为可直接展示给用户的中文提示。
   const SourceParseResult.failure(String errorMessage)
-      : this._(errorMessage: errorMessage);
+    : this._(errorMessage: errorMessage);
+
+  const SourceParseResult.suggestions(List<String> tags)
+    : this._(suggestedTags: tags);
+
+  final List<String> suggestedTags;
 
   /// 解析出的图片列表（失败时为空）。
   final List<ImageItem> items;

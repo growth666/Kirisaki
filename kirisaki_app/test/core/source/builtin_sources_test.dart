@@ -8,6 +8,114 @@ import 'package:kirisaki_app/core/source/source_config.dart';
 import 'package:kirisaki_app/core/source/source_parse_service.dart';
 
 void main() {
+  test(
+    'Zerochan empty object resolves official disambiguation links',
+    () async {
+      final requests = <Uri>[];
+      final service = SourceParseService(
+        client: MockClient((request) async {
+          requests.add(request.url);
+          return http.Response(
+            request.url.hasQuery
+                ? '{}'
+                : '''
+        <a href="/Unrelated">Other</a><ul id="children-grid">
+        <a class="thumb" href="/Rem+%28Re%3AZero%29"></a>
+        <a class="thumb" href="/Rem+%28DEATH+NOTE%29"></a>
+        <a class="thumb" href="/Rem+%28Re%3AZero%29"></a>
+        <a class="thumb" href="https://elsewhere.test/Invalid"></a></ul>
+      ''',
+            200,
+          );
+        }),
+      );
+      addTearDown(service.close);
+      final source = BuiltinSources.all[2];
+      final result = await service.search(source, keyword: 'rem');
+      expect(result.suggestedTags, ['Rem (Re:Zero)', 'Rem (DEATH NOTE)']);
+      expect(requests.length, 2);
+      requests.clear();
+      final next = await service.search(source, keyword: 'rem', page: 2);
+      expect(next.errorMessage, SourceParseService.noImagesMessage);
+      expect(requests.length, 1);
+    },
+  );
+
+  for (final body in ['{}', '{"items":[]}', '{"error":"unavailable"}']) {
+    test(
+      'Zerochan handles empty and error objects distinctly: $body',
+      () async {
+        final service = SourceParseService(
+          client: MockClient(
+            (request) async => http.Response(
+              request.url.hasQuery ? body : 'unavailable',
+              request.url.hasQuery ? 200 : 503,
+            ),
+          ),
+        );
+        addTearDown(service.close);
+        final result = await service.search(
+          BuiltinSources.all[2],
+          keyword: 'rem',
+        );
+        expect(result.suggestedTags, isEmpty);
+        expect(
+          result.errorMessage,
+          body.contains('error')
+              ? contains('解析失败')
+              : SourceParseService.noImagesMessage,
+        );
+      },
+    );
+  }
+  test('empty rem search offers only qualified character tags', () async {
+    final requests = <Uri>[];
+    final service = SourceParseService(
+      client: MockClient((request) async {
+        requests.add(request.url);
+        if (request.url.path == '/tags.json') {
+          expect(
+            request.url.queryParameters['search[name_matches]'],
+            'rem_(*)',
+          );
+          return http.Response(
+            jsonEncode([
+              {'name': 'rem_(re:zero)', 'category': 4},
+              {'name': 'remilia_scarlet', 'category': 4},
+              {'name': 'rem_(other)', 'category': 0},
+            ]),
+            200,
+          );
+        }
+        return http.Response('[]', 200);
+      }),
+    );
+    addTearDown(service.close);
+    final result = await service.search(BuiltinSources.all[1], keyword: 'rem');
+    expect(result.suggestedTags, ['rem_(re:zero)']);
+    expect(requests.length, 2);
+    requests.clear();
+    await service.search(BuiltinSources.all[1], keyword: 'rem', page: 2);
+    expect(requests.length, 1);
+    requests.clear();
+    await service.search(BuiltinSources.all[1], keyword: 'rem blue_hair');
+    expect(requests.length, 1);
+  });
+
+  test('tag lookup failure preserves empty result', () async {
+    final service = SourceParseService(
+      client: MockClient(
+        (request) async => http.Response(
+          request.url.path == '/tags.json' ? 'blocked' : '[]',
+          request.url.path == '/tags.json' ? 403 : 200,
+        ),
+      ),
+    );
+    addTearDown(service.close);
+    final result = await service.search(BuiltinSources.all[1], keyword: 'rem');
+    expect(result.errorMessage, SourceParseService.noImagesMessage);
+    expect(result.suggestedTags, isEmpty);
+  });
   test('four official sources and separate unchanged recommendation', () {
     expect(BuiltinSources.all.map((s) => s.id), [
       'safebooru',

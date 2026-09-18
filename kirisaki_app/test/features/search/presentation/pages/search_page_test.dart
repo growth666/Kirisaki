@@ -84,6 +84,66 @@ GoRouter _testRouter(
 }
 
 void main() {
+  testWidgets('Zerochan rem candidate searches its full name', (tester) async {
+    final service = SourceParseService(
+      client: MockClient((request) async {
+        if (!request.url.hasQuery) {
+          return http.Response(
+            '<ul id="children-grid"><a class="thumb" href="/Rem+%28Re%3AZero%29"></a></ul>',
+            200,
+          );
+        }
+        if (request.url.path == '/rem') return http.Response('{}', 200);
+        expect(Uri.decodeComponent(request.url.path), '/Rem (Re:Zero)');
+        return http.Response(
+          '{"items":[{"id":10,"tag":"Rem (Re:Zero)"}]}',
+          200,
+        );
+      }),
+    );
+    final router = _testRouter(service);
+    addTearDown(router.dispose);
+    addTearDown(service.close);
+    await tester.pumpWidget(MaterialApp.router(routerConfig: router));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(ChoiceChip, 'Zerochan'));
+    await tester.pump();
+    await tester.enterText(find.byKey(const Key('searchInput')), 'rem');
+    await tester.tap(find.byIcon(Icons.arrow_forward));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(ActionChip, 'Rem (Re:Zero)'));
+    await tester.pumpAndSettle();
+    expect(find.byType(Card), findsOneWidget);
+  });
+  testWidgets('Danbooru rem candidate is clickable and submits exact tag', (
+    tester,
+  ) async {
+    final queries = <String>[];
+    final service = SourceParseService(
+      client: MockClient((request) async {
+        if (request.url.path == '/tags.json') {
+          return http.Response('[{"name":"rem_(re:zero)","category":4}]', 200);
+        }
+        final query = request.url.queryParameters['tags']!;
+        queries.add(query);
+        return http.Response(query == 'rem' ? '[]' : _moebooruFixture, 200);
+      }),
+    );
+    final router = _testRouter(service);
+    addTearDown(router.dispose);
+    addTearDown(service.close);
+    await tester.pumpWidget(MaterialApp.router(routerConfig: router));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(ChoiceChip, 'Danbooru (Safe)'));
+    await tester.pump();
+    await tester.enterText(find.byKey(const Key('searchInput')), 'rem');
+    await tester.tap(find.byIcon(Icons.arrow_forward));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(ActionChip, 'rem_(re:zero)'));
+    await tester.pumpAndSettle();
+    expect(queries, ['rem', 'rem_(re:zero)']);
+    expect(find.byType(Card), findsNWidgets(2));
+  });
   setUp(() {
     SharedPreferencesAsyncPlatform.instance =
         InMemorySharedPreferencesAsync.empty();
@@ -138,6 +198,53 @@ void main() {
     expect(find.textContaining('/image/original/a1.jpg'), findsOneWidget);
   });
 
+  for (final submitWithKeyboard in [false, true]) {
+    testWidgets('搜索收起键盘且预览返回不恢复输入焦点：keyboard=$submitWithKeyboard', (
+      WidgetTester tester,
+    ) async {
+      final service = SourceParseService(
+        client: MockClient((_) async => http.Response(_moebooruFixture, 200)),
+      );
+      final router = _testRouter(service);
+      addTearDown(router.dispose);
+      addTearDown(service.close);
+      await tester.pumpWidget(MaterialApp.router(routerConfig: router));
+      await tester.pumpAndSettle();
+      final input = find.byKey(const Key('searchInput'));
+      await tester.enterText(input, 'blue_sky');
+      if (submitWithKeyboard) {
+        await tester.testTextInput.receiveAction(TextInputAction.search);
+      } else {
+        await tester.tap(find.byIcon(Icons.arrow_forward));
+      }
+      await tester.pumpAndSettle();
+      final editable = tester.state<EditableTextState>(
+        find.descendant(of: input, matching: find.byType(EditableText)),
+      );
+      expect(editable.widget.focusNode.hasFocus, isFalse);
+      expect(tester.testTextInput.isVisible, isFalse);
+
+      // Re-focus while results are visible, then repeat navigation to catch
+      // the route restoring a previously focused input on subsequent visits.
+      for (var visit = 0; visit < 2; visit++) {
+        await tester.showKeyboard(input);
+        expect(editable.widget.focusNode.hasFocus, isTrue);
+        await tester.tap(find.byType(Card).first);
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 500));
+        expect(find.text('图片预览'), findsOneWidget);
+        router.pop();
+        await tester.pumpAndSettle();
+        expect(editable.widget.focusNode.hasFocus, isFalse);
+        expect(tester.testTextInput.isVisible, isFalse);
+        expect(tester.widget<TextField>(input).controller!.text, 'blue_sky');
+      }
+      await tester.showKeyboard(input);
+      expect(editable.widget.focusNode.hasFocus, isTrue);
+      expect(tester.testTextInput.isVisible, isTrue);
+    });
+  }
+
   testWidgets('空结果显示空态提示', (WidgetTester tester) async {
     final SourceParseService service = SourceParseService(
       client: MockClient(
@@ -185,7 +292,8 @@ void main() {
 
     final SourceParseService service = SourceParseService(
       client: MockClient((http.Request request) async {
-        final int page = int.parse(request.url.queryParameters['pid'] ?? '0') + 1;
+        final int page =
+            int.parse(request.url.queryParameters['pid'] ?? '0') + 1;
         return http.Response(page == 1 ? _moebooruFixture : _emptyFixture, 200);
       }),
     );
@@ -214,7 +322,8 @@ void main() {
     int pageOneRequests = 0;
     final SourceParseService service = SourceParseService(
       client: MockClient((http.Request request) async {
-        final int page = int.parse(request.url.queryParameters['pid'] ?? '0') + 1;
+        final int page =
+            int.parse(request.url.queryParameters['pid'] ?? '0') + 1;
         if (page == 1) {
           pageOneRequests++;
         }

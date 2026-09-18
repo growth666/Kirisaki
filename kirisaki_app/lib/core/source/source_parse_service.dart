@@ -8,6 +8,8 @@ import 'package:http/http.dart' as http;
 
 import '../network/http_client_factory.dart';
 import 'image_item.dart';
+import 'content_safety.dart';
+import '../settings/settings_service.dart';
 import 'moebooru_json_parser.dart';
 import 'source_config.dart';
 import 'source_parse_result.dart';
@@ -142,6 +144,28 @@ class SourceParseService {
     }
 
     try {
+      if (config.sourceType == SourceType.json &&
+          config.jsonFormat == SourceJsonFormat.zerochan &&
+          page == 1) {
+        final decoded = jsonDecode(utf8.decode(response.bodyBytes));
+        if (decoded is Map && decoded.isEmpty) {
+          final tags = await _zerochanTags(config, searchUri);
+          if (tags.isNotEmpty) return SourceParseResult.suggestions(tags);
+        }
+      }
+      if (config.jsonFormat == SourceJsonFormat.danbooru &&
+          config.sourceType == SourceType.json &&
+          page == 1 &&
+          RegExp(r'^[a-zA-Z0-9_]+$').hasMatch(keyword.trim())) {
+        final decoded = jsonDecode(utf8.decode(response.bodyBytes));
+        if (decoded is List && decoded.isEmpty) {
+          final tags = await _characterTags(
+            config,
+            keyword.trim().toLowerCase(),
+          );
+          if (tags.isNotEmpty) return SourceParseResult.suggestions(tags);
+        }
+      }
       // 按图源类型分流：JSON 图源走 post.json 解析器，
       // HTML 图源沿用原 CSS 选择器解析逻辑（原代码不变）。
       final List<ImageItem> items = config.sourceType == SourceType.json
@@ -154,12 +178,88 @@ class SourceParseService {
               format: config.jsonFormat,
             )
           : parseHtml(response.body, config);
-      if (items.isEmpty) {
+      final filteredItems = SettingsService.instance.showAdultContent
+          ? items
+          : items.where((item) => !isAdultImage(item)).toList();
+      if (filteredItems.isEmpty) {
         return const SourceParseResult.failure(noImagesMessage);
       }
-      return SourceParseResult.success(items);
+      return SourceParseResult.success(filteredItems);
     } catch (e) {
       return SourceParseResult.failure('解析失败：$e');
+    }
+  }
+
+  Future<List<String>> _characterTags(SourceConfig config, String name) async {
+    final uri = Uri.parse(config.baseUrl)
+        .resolve('/tags.json')
+        .replace(
+          queryParameters: {
+            'search[name_matches]': '${name}_(*)',
+            'search[category]': '4',
+            'search[order]': 'count',
+            'limit': '10',
+          },
+        );
+    try {
+      final response = await _client
+          .get(
+            _applyWebCorsProxy(config, uri),
+            headers: {'User-Agent': config.userAgent},
+          )
+          .timeout(config.timeout);
+      if (response.statusCode != 200) return [];
+      final data = jsonDecode(utf8.decode(response.bodyBytes));
+      if (data is! List) return [];
+      return data
+          .whereType<Map<String, dynamic>>()
+          .where((tag) => tag['category'] == 4 && tag['name'] is String)
+          .map((tag) => tag['name'] as String)
+          .where((tag) => tag.startsWith('${name}_(') && tag.endsWith(')'))
+          .toSet()
+          .toList();
+    } catch (_) {
+      // An optional suggestion failure must preserve the original empty result.
+      return [];
+    }
+  }
+
+  Future<List<String>> _zerochanTags(SourceConfig config, Uri searchUri) async {
+    // Only consult the tag page for an empty JSON object, never for normal
+    // image results, later pages, or malformed/error JSON objects.
+    final pageUri = Uri.parse(searchUri.toString().split('?').first);
+    try {
+      final response = await _client
+          .get(
+            _applyWebCorsProxy(config, pageUri),
+            headers: {'User-Agent': config.userAgent},
+          )
+          .timeout(config.timeout);
+      if (response.statusCode != 200) return [];
+      final document = html_parser.parse(utf8.decode(response.bodyBytes));
+      final tags = <String>{};
+      for (final link in document.querySelectorAll(
+        '#children-grid a.thumb[href]',
+      )) {
+        final target = pageUri.resolve(link.attributes['href']!);
+        if (target.origin != pageUri.origin ||
+            target.hasQuery ||
+            target.hasFragment ||
+            target.pathSegments.length != 1) {
+          continue;
+        }
+        // Zerochan encodes tag-name spaces as '+' in its page links.
+        final name = Uri.decodeComponent(
+          target.path.substring(1).replaceAll('+', ' '),
+        );
+        if (name.trim().isNotEmpty && int.tryParse(name) == null) {
+          tags.add(name);
+        }
+        if (tags.length >= 20) break;
+      }
+      return tags.toList();
+    } catch (_) {
+      return [];
     }
   }
 

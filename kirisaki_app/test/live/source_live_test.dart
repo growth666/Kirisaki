@@ -12,6 +12,55 @@ import 'package:kirisaki_app/core/source/source_parse_service.dart';
 // Explicit opt-in: normal test runs never contact third-party sites.
 void main() {
   const enabled = bool.fromEnvironment('RUN_SOURCE_LIVE');
+  test(
+    'live Zerochan rem disambiguation and naruto regression',
+    () async {
+      final service = SourceParseService();
+      addTearDown(service.close);
+      final source = BuiltinSources.all.firstWhere((s) => s.id == 'zerochan');
+      final result = await service.search(source, keyword: 'rem');
+      expect(result.suggestedTags, contains('Rem (Re:Zero)'));
+      final first = await service.search(source, keyword: 'Rem (Re:Zero)');
+      final second = await service.search(
+        source,
+        keyword: 'Rem (Re:Zero)',
+        page: 2,
+      );
+      expect(first.items, isNotEmpty, reason: first.errorMessage);
+      expect(second.items, isNotEmpty, reason: second.errorMessage);
+      expect(second.items.first.imageUrl, isNot(first.items.first.imageUrl));
+      final resolved = await service.resolveImage(first.items.first);
+      expect(resolved.detailUrl, isNull);
+      expect(Uri.parse(resolved.imageUrl).path, contains('.'));
+      final naruto = await service.search(source, keyword: 'naruto');
+      expect(naruto.items, isNotEmpty, reason: naruto.errorMessage);
+    },
+    skip: !enabled,
+    timeout: const Timeout(Duration(minutes: 2)),
+  );
+  test(
+    'live Danbooru rem suggestions and qualified search',
+    () async {
+      final service = SourceParseService();
+      addTearDown(service.close);
+      final source = BuiltinSources.all.firstWhere(
+        (s) => s.id == 'danbooru_safe',
+      );
+      final result = await service.search(source, keyword: 'rem');
+      expect(result.suggestedTags, contains('rem_(re:zero)'));
+      final first = await service.search(source, keyword: 'rem_(re:zero)');
+      final second = await service.search(
+        source,
+        keyword: 'rem_(re:zero)',
+        page: 2,
+      );
+      expect(first.items, isNotEmpty, reason: first.errorMessage);
+      expect(second.items, isNotEmpty, reason: second.errorMessage);
+      expect(second.items.first.imageUrl, isNot(first.items.first.imageUrl));
+    },
+    skip: !enabled,
+    timeout: const Timeout(Duration(minutes: 2)),
+  );
   for (final builtin in BuiltinSources.all) {
     test(
       'live ${builtin.id}: two pages, thumbnail, full image and saved file',

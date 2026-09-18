@@ -41,6 +41,8 @@ abstract final class MoebooruJsonParser {
     if (decoded is List<Object?>) {
       posts = decoded;
     } else if (decoded is Map<String, Object?>) {
+      // Zerochan returns {} for tag disambiguation pages (for example Rem).
+      if (format == SourceJsonFormat.zerochan && decoded.isEmpty) return [];
       final Object? list =
           decoded[listKey ??
               (format == SourceJsonFormat.zerochan ? 'items' : 'posts')];

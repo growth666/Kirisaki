@@ -1,5 +1,33 @@
 # Search sources: module two
 
+## Zerochan disambiguation fix — 2026-09-18
+
+Windows, direct connection without proxy: `/rem?json&p=1&l=24` returned `{}`;
+the HTML page contained a `#children-grid` of same-name character choices.
+`naruto` returned a normal `items` list. Empty Zerochan objects now produce an
+empty result instead of a parser exception; on page one the app reads official
+character links and offers explicit choices using the existing suggestion UI.
+Unknown nonempty JSON structures still report a parse error. Tag-page lookup
+failures fall back to the normal empty result without crashing.
+
+The live application-client test passed for `rem` choices, two different pages
+of `Rem (Re:Zero)`, original URL resolution, and `naruto` search. This run did
+not revalidate image download or Android. Thirty relevant unit/widget tests
+passed, including candidate clicks, malformed JSON, failed lookup and paging.
+
+## Danbooru character-name fix — 2026-09-18
+
+Windows direct connection, no proxy: `rem` returned an empty post array;
+`rem_(re:zero)` returned images. The application now offers official qualified
+character tags after an empty first-page single-name search. Candidates are
+chosen explicitly; multi-tag queries and pagination are not rewritten.
+The live application-client test passed for `rem` suggestions and two distinct
+pages of `rem_(re:zero)`. Unit/widget tests cover clicking the candidate, excluding
+unrelated names, pagination, and optional tag lookup failure. Android remains
+unverified. This is tag disambiguation, not Chinese-name translation.
+One separate PowerShell request to the tag endpoint received a browser challenge;
+the application-client verification subsequently passed. Availability can vary.
+
 Verified on Windows on 2026-09-14, using the application's Dart HTTP client,
 parsers, image decoder and file downloader. Proxy was disabled. These results
 describe this machine's network, not a guarantee of availability across China.
