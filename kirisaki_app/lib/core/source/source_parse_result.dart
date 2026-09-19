@@ -6,6 +6,7 @@ class SourceParseResult {
     this.items = const <ImageItem>[],
     this.errorMessage,
     this.suggestedTags = const <String>[],
+    this.isEmpty = false,
   });
 
   /// 解析成功。
@@ -17,6 +18,12 @@ class SourceParseResult {
 
   const SourceParseResult.suggestions(List<String> tags)
     : this._(suggestedTags: tags);
+
+  /// A valid response with no displayable images, distinct from a failed request.
+  const SourceParseResult.empty(String message)
+    : this._(errorMessage: message, isEmpty: true);
+
+  final bool isEmpty;
 
   final List<String> suggestedTags;
 

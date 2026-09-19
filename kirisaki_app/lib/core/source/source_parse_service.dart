@@ -181,12 +181,17 @@ class SourceParseService {
       final filteredItems = SettingsService.instance.showAdultContent
           ? items
           : items.where((item) => !isAdultImage(item)).toList();
+      if (items.isNotEmpty && filteredItems.isEmpty) {
+        return const SourceParseResult.empty('本页图片已被内容显示设置隐藏');
+      }
       if (filteredItems.isEmpty) {
-        return const SourceParseResult.failure(noImagesMessage);
+        return const SourceParseResult.empty(noImagesMessage);
       }
       return SourceParseResult.success(filteredItems);
-    } catch (e) {
-      return SourceParseResult.failure('解析失败：$e');
+    } catch (_) {
+      return const SourceParseResult.failure(
+        '解析失败：图源返回的数据不符合预期，可能是接口变更或验证页面。请稍后重试，或切换图源',
+      );
     }
   }
 

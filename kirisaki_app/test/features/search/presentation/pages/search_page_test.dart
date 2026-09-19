@@ -84,6 +84,64 @@ GoRouter _testRouter(
 }
 
 void main() {
+  testWidgets('推荐失败后重试仍请求推荐源', (tester) async {
+    var calls = 0;
+    final service = SourceParseService(
+      client: MockClient((request) async {
+        expect(request.url.host, 't.alcy.cc');
+        calls++;
+        return http.Response(
+          calls == 1 ? '' : _alcyFixture,
+          calls == 1 ? 503 : 200,
+        );
+      }),
+    );
+    await tester.pumpWidget(
+      MaterialApp.router(
+        routerConfig: _testRouter(service, autoLoadRecommend: true),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.textContaining('503'), findsOneWidget);
+    expect(find.text('没有找到相关图片，换个关键词试试'), findsNothing);
+    await tester.tap(find.text('重试'));
+    await tester.pumpAndSettle();
+    expect(calls, 2);
+    expect(find.byType(Card), findsNWidgets(2));
+  });
+
+  testWidgets('分页失败保留图片并重试同一页', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(400, 350));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final pages = <String?>[];
+    final service = SourceParseService(
+      client: MockClient((request) async {
+        pages.add(request.url.queryParameters['pid']);
+        return http.Response(
+          pages.length == 2 ? '' : _moebooruFixture,
+          pages.length == 2 ? 429 : 200,
+        );
+      }),
+    );
+    await tester.pumpWidget(
+      MaterialApp.router(routerConfig: _testRouter(service)),
+    );
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('searchInput')), 'sky');
+    await tester.tap(find.byIcon(Icons.arrow_forward));
+    await tester.pumpAndSettle();
+    await tester.drag(find.byType(CustomScrollView), const Offset(0, -600));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('429'), findsOneWidget);
+    expect(find.text('没有更多了'), findsNothing);
+    expect(find.byType(Card), findsNWidgets(2));
+    await tester.ensureVisible(find.text('重试加载更多'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('重试加载更多'));
+    await tester.pumpAndSettle();
+    expect(pages.take(3), ['0', '1', '1']);
+  });
+
   testWidgets('Zerochan rem candidate searches its full name', (tester) async {
     final service = SourceParseService(
       client: MockClient((request) async {

@@ -62,6 +62,8 @@ class _SearchPageState extends State<SearchPage>
   bool _hasMore = true;
   bool _searched = false; // 是否已发起过搜索（区分初始提示与空态）
   int _page = 1;
+  String? _pageError;
+  String? _emptyMessage;
   String? _error; // 首页错误信息（非空时展示错误态）
   String? _lastKeyword; // 当前结果对应的关键词（分页复用）
   SourceConfig? _lastSource; // 当前结果对应的图源（分页复用）
@@ -120,10 +122,12 @@ class _SearchPageState extends State<SearchPage>
     _requestGeneration++;
     _items.clear();
     _suggestedTags = [];
+    _emptyMessage = null;
     _loading = false;
     _loadingMore = false;
     _page = 1;
     _hasMore = true;
+    _pageError = null;
     _error = null;
     _searched = false;
     _lastKeyword = null;
@@ -190,6 +194,15 @@ class _SearchPageState extends State<SearchPage>
     }
   }
 
+  void _retryFirstPage() {
+    if (_recommendMode) {
+      _loadRecommend();
+    } else {
+      _searchController.text = _lastKeyword ?? _searchController.text;
+      _search();
+    }
+  }
+
   Future<void> _search() async {
     _searchFocusNode.unfocus();
     if (!_sourcesReady) return;
@@ -212,10 +225,12 @@ class _SearchPageState extends State<SearchPage>
     setState(() {
       _loading = true;
       _loadingMore = false;
+      _pageError = null;
       _error = null;
       _searched = true;
       _items.clear();
       _suggestedTags = [];
+      _emptyMessage = null;
       _page = 1;
       _hasMore = true;
       _lastKeyword = keyword;
@@ -236,7 +251,12 @@ class _SearchPageState extends State<SearchPage>
         _suggestedTags = result.suggestedTags;
         _items.addAll(result.items);
         _hasMore = result.items.isNotEmpty;
-      } else if (result.errorMessage == SourceParseService.noImagesMessage) {
+      } else if (result.isEmpty) {
+        _emptyMessage =
+            result.errorMessage == SourceParseService.noImagesMessage
+            ? null
+            : result.errorMessage;
+        _pageError = null;
         _error = null; // 无结果 → 空态
       } else {
         _error = result.errorMessage;
@@ -250,7 +270,7 @@ class _SearchPageState extends State<SearchPage>
 
   Future<void> _loadMore() async {
     // 上拉分页请求锁：首页加载中/分页加载中/没有更多时均不重复触发。
-    if (_loading || _loadingMore || !_hasMore) {
+    if (_loading || _loadingMore || !_hasMore || _pageError != null) {
       return;
     }
     final SourceConfig? source = _lastSource;
@@ -259,7 +279,10 @@ class _SearchPageState extends State<SearchPage>
     if (source == null || (source.requiresKeyword && keyword == null)) {
       return;
     }
-    setState(() => _loadingMore = true);
+    setState(() {
+      _pageError = null;
+      _loadingMore = true;
+    });
     final generation = _requestGeneration;
     final SourceParseResult result = await _service.search(
       source,
@@ -275,11 +298,15 @@ class _SearchPageState extends State<SearchPage>
         _page += 1;
         _items.addAll(result.items);
         _hasMore = result.items.isNotEmpty;
-      } else if (result.errorMessage == SourceParseService.noImagesMessage) {
-        _hasMore = false; // 没有更多
+      } else if (result.isEmpty) {
+        if (result.errorMessage != SourceParseService.noImagesMessage) {
+          _page += 1;
+          _pageError = result.errorMessage;
+        } else {
+          _hasMore = false;
+        }
       } else {
-        _hasMore = false;
-        _showSnackBar(result.errorMessage!);
+        _pageError = result.errorMessage;
       }
     });
   }
@@ -322,10 +349,12 @@ class _SearchPageState extends State<SearchPage>
     setState(() {
       _loading = true;
       _loadingMore = false;
+      _pageError = null;
       _error = null;
       _searched = true;
       _recommendMode = true;
       _suggestedTags = [];
+      _emptyMessage = null;
       _items.clear();
       _page = 1;
       _hasMore = true;
@@ -341,7 +370,12 @@ class _SearchPageState extends State<SearchPage>
       if (result.isSuccess) {
         _items.addAll(result.items);
         _hasMore = result.items.isNotEmpty;
-      } else if (result.errorMessage == SourceParseService.noImagesMessage) {
+      } else if (result.isEmpty) {
+        _emptyMessage =
+            result.errorMessage == SourceParseService.noImagesMessage
+            ? '推荐源暂未返回图片，请稍后刷新'
+            : result.errorMessage;
+        _pageError = null;
         _error = null; // 空态
       } else {
         _error = result.errorMessage;
@@ -535,7 +569,7 @@ class _SearchPageState extends State<SearchPage>
       return const Center(child: CircularProgressIndicator());
     }
     if (_error != null) {
-      return _ErrorView(message: _error!, onRetry: _search);
+      return _ErrorView(message: _error!, onRetry: _retryFirstPage);
     }
     if (!_searched) {
       return const _HintView(
@@ -569,9 +603,9 @@ class _SearchPageState extends State<SearchPage>
           ),
         );
       }
-      return const _HintView(
+      return _HintView(
         icon: Icons.image_not_supported_outlined,
-        message: '没有找到相关图片，换个关键词试试',
+        message: _emptyMessage ?? '没有找到相关图片，换个关键词试试',
       );
     }
     return LayoutBuilder(
@@ -619,6 +653,20 @@ class _SearchPageState extends State<SearchPage>
         width: 24,
         height: 24,
         child: CircularProgressIndicator(strokeWidth: 2.5),
+      );
+    } else if (_pageError != null) {
+      child = Column(
+        children: [
+          Text(_pageError!, textAlign: TextAlign.center),
+          TextButton.icon(
+            onPressed: () {
+              setState(() => _pageError = null);
+              _loadMore();
+            },
+            icon: const Icon(Icons.refresh),
+            label: const Text('重试加载更多'),
+          ),
+        ],
       );
     } else if (!_hasMore) {
       child = Text(
@@ -752,11 +800,7 @@ class _ErrorView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.wifi_off_outlined,
-              size: 64,
-              color: theme.colorScheme.error,
-            ),
+            Icon(Icons.error_outline, size: 64, color: theme.colorScheme.error),
             const SizedBox(height: 12),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 32),
