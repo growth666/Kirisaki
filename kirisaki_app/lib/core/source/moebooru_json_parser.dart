@@ -97,6 +97,7 @@ abstract final class MoebooruJsonParser {
         width: _intField(post['width']),
         height: _intField(post['height']),
         tags: _parseTags(post['tags']),
+        rating: _stringField(post['rating']),
         useProxy: itemUseProxy,
       );
     }
@@ -168,6 +169,7 @@ abstract final class MoebooruJsonParser {
       height: _intField(lookup['height']),
       sourcePage: sourcePage,
       tags: _parseTags(lookup['tags']),
+      rating: _stringField(lookup['rating']),
       useProxy: itemUseProxy,
     );
   }

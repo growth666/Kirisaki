@@ -10,6 +10,7 @@ class ImageItem {
     this.tags = const <String>[],
     this.useProxy = true,
     this.detailUrl,
+    this.rating,
   });
 
   /// 原图地址（下载能力预留字段，本轮不实现下载逻辑）。
@@ -40,6 +41,9 @@ class ImageItem {
   /// Zerochan search responses require a detail request before preview/download.
   final String? detailUrl;
 
+  /// Raw upstream content rating; null means unknown, not safe.
+  final String? rating;
+
   /// 序列化为 JSON 对象（收藏持久化用）。
   Map<String, Object?> toJson() => <String, Object?>{
     'imageUrl': imageUrl,
@@ -51,6 +55,7 @@ class ImageItem {
     'tags': tags,
     'useProxy': useProxy,
     'detailUrl': detailUrl,
+    'rating': rating,
   };
 
   /// 从 JSON 对象恢复；缺失字段取默认值。
@@ -66,5 +71,6 @@ class ImageItem {
         .toList(),
     useProxy: json['useProxy'] as bool? ?? true,
     detailUrl: json['detailUrl'] as String?,
+    rating: json['rating'] as String?,
   );
 }

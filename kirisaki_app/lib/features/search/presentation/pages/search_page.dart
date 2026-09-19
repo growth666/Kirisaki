@@ -5,6 +5,7 @@ import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/profile/search_history_service.dart';
+import '../../../../core/settings/settings_service.dart';
 import '../../../../core/source/builtin_sources.dart';
 import '../../../../core/source/image_item.dart';
 import '../../../../core/source/source_config.dart';
@@ -68,6 +69,7 @@ class _SearchPageState extends State<SearchPage>
   String? _lastKeyword; // 当前结果对应的关键词（分页复用）
   SourceConfig? _lastSource; // 当前结果对应的图源（分页复用）
   bool _recommendMode = false; // 当前是否处于推荐流模式
+  bool _showAdultContent = SettingsService.instance.showAdultContent;
 
   /// 回到顶部按钮可见性（ValueNotifier 局部刷新：滚动只更新该值，
   /// 不触发整页 setState）。
@@ -79,6 +81,7 @@ class _SearchPageState extends State<SearchPage>
   @override
   void initState() {
     super.initState();
+    SettingsService.instance.addListener(_onContentSettingsChanged);
     _sources = _sourceService.enabled;
     _selectedSource = _sources.isNotEmpty ? _sources.first : null;
     _sourceService.addListener(_onSourcesChanged);
@@ -94,6 +97,7 @@ class _SearchPageState extends State<SearchPage>
 
   @override
   void dispose() {
+    SettingsService.instance.removeListener(_onContentSettingsChanged);
     if (widget.service == null) _service.close();
     _sourceService.removeListener(_onSourcesChanged);
     SearchHistoryService.instance.removeListener(_onHistoryQuickSearch);
@@ -115,6 +119,22 @@ class _SearchPageState extends State<SearchPage>
       }
     } catch (error) {
       if (mounted) setState(() => _sourceError = '加载图源失败：$error');
+    }
+  }
+
+  void _onContentSettingsChanged() {
+    final next = SettingsService.instance.showAdultContent;
+    if (!mounted || next == _showAdultContent) return;
+    _showAdultContent = next;
+    final hadSearch = _searched;
+    final keyword = _lastKeyword;
+    setState(_clearSearch);
+    if (!hadSearch) return;
+    if (_recommendMode) {
+      _loadRecommend();
+    } else if (keyword != null) {
+      _searchController.text = keyword;
+      _search();
     }
   }
 

@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+
+import 'dart:async';
+
+import 'package:kirisaki_app/core/settings/settings_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
@@ -84,6 +88,34 @@ GoRouter _testRouter(
 }
 
 void main() {
+  testWidgets('内容切换重新请求并丢弃旧结果', (tester) async {
+    final settings = SettingsService.instance;
+    await settings.setShowAdultContent(false);
+    final old = Completer<http.Response>();
+    var calls = 0;
+    final service = SourceParseService(
+      client: MockClient((request) async {
+        calls++;
+        if (calls == 1) return old.future;
+        return http.Response('[]', 200);
+      }),
+    );
+    await tester.pumpWidget(
+      MaterialApp.router(routerConfig: _testRouter(service)),
+    );
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('searchInput')), 'sky');
+    await tester.tap(find.byIcon(Icons.arrow_forward));
+    await tester.pump();
+    await settings.setShowAdultContent(true);
+    await tester.pumpAndSettle();
+    expect(calls, 2);
+    old.complete(http.Response(_moebooruFixture, 200));
+    await tester.pumpAndSettle();
+    expect(find.byType(Card), findsNothing);
+    await tester.pumpWidget(const SizedBox());
+    await settings.setShowAdultContent(false);
+  });
   testWidgets('推荐失败后重试仍请求推荐源', (tester) async {
     var calls = 0;
     final service = SourceParseService(
