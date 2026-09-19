@@ -6,7 +6,7 @@
         android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         android:maxSdkVersion="28" />
     <application
-        android:label="kirisaki_app"
+        android:label="Kirisaki"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
