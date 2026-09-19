@@ -15,6 +15,12 @@ class KirisakiApp extends StatefulWidget {
 
 class _KirisakiAppState extends State<KirisakiApp> {
   @override
+  void reassemble() {
+    super.reassemble();
+    refreshAppRoutes();
+  }
+
+  @override
   void initState() {
     super.initState();
     SettingsService.instance.load();

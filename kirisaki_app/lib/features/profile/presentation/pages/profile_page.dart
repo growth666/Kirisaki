@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/favorite/favorite_service.dart';
 import '../../../../core/profile/download_service.dart';
 import '../../../../core/profile/history_service.dart';
+import '../../../../core/router/route_names.dart';
 
 /// 我的页面：数据概览卡片 + 功能列表入口。
 class ProfilePage extends StatefulWidget {
@@ -99,6 +100,16 @@ class _ProfilePageState extends State<ProfilePage>
             onTap: () => _push('/my_sources'),
           ),
           _SectionTile(
+            icon: Icons.visibility_outlined,
+            title: '内容显示',
+            onTap: () => _push(RouteNames.contentDisplay),
+          ),
+          _SectionTile(
+            icon: Icons.workspace_premium_outlined,
+            title: '贡献者榜单',
+            onTap: () => _push('/contributors'),
+          ),
+          _SectionTile(
             icon: Icons.settings_outlined,
             title: '设置',
             onTap: () => _push('/settings'),
@@ -131,13 +142,15 @@ class _StatItem extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             value,
-            style: theme.textTheme.titleMedium
-                ?.copyWith(fontWeight: FontWeight.bold),
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
           ),
           Text(
             label,
-            style: theme.textTheme.bodySmall
-                ?.copyWith(color: theme.colorScheme.outline),
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.outline,
+            ),
           ),
         ],
       ),

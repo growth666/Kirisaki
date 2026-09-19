@@ -1,5 +1,7 @@
 /// 路由路径常量。
 abstract final class RouteNames {
+  static const String contentDisplay = '/content_display';
+
   /// 搜索页（首页）。
   static const String search = '/';
 

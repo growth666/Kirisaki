@@ -166,14 +166,6 @@ class _SettingsPageState extends State<SettingsPage> {
                   ],
                 ),
               ),
-              const _GroupHeader('内容显示'),
-              SwitchListTile(
-                secondary: const Icon(Icons.visibility_outlined),
-                title: const Text('显示 18+ 内容'),
-                subtitle: const Text('关闭时自动隐藏带有成人或露骨标签的搜索结果'),
-                value: _settings.showAdultContent,
-                onChanged: _settings.setShowAdultContent,
-              ),
               // —— 网络代理 ——
               const _GroupHeader('网络代理'),
               ListTile(

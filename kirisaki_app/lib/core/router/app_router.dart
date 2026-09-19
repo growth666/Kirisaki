@@ -4,9 +4,11 @@ import 'package:go_router/go_router.dart';
 import '../../features/favorite/presentation/pages/favorites_page.dart';
 import '../../features/preview/presentation/pages/image_preview_page.dart';
 import '../../features/profile/presentation/pages/browse_history_page.dart';
+import '../../features/profile/presentation/pages/content_display_page.dart';
 import '../../features/profile/presentation/pages/download_records_page.dart';
 import '../../features/profile/presentation/pages/search_history_page.dart';
 import '../../features/settings/presentation/pages/about_page.dart';
+import '../../features/settings/presentation/pages/contributors_page.dart';
 import '../../features/settings/presentation/pages/proxy_settings_page.dart';
 import '../../features/settings/presentation/pages/settings_page.dart';
 import '../../features/shell/presentation/pages/home_shell.dart';
@@ -22,9 +24,30 @@ import 'transitions.dart';
 ///
 /// 转场：普通页面渐隐 200ms（fadePage）；预览页缩放+渐隐 200ms
 /// （zoomFadePage），替代默认平台滑动转场。
-final GoRouter appRouter = GoRouter(
+final _routingConfig = ValueNotifier<RoutingConfig>(_buildRoutingConfig());
+
+/// Refresh route definitions after hot reload without replacing the navigator.
+void refreshAppRoutes() => _routingConfig.value = _buildRoutingConfig();
+
+final GoRouter appRouter = GoRouter.routingConfig(
   initialLocation: RouteNames.search,
+  routingConfig: _routingConfig,
+);
+
+RoutingConfig _buildRoutingConfig() => RoutingConfig(
   routes: <RouteBase>[
+    GoRoute(
+      path: RouteNames.contentDisplay,
+      name: 'contentDisplay',
+      pageBuilder: (BuildContext context, GoRouterState state) =>
+          fadePage(const ContentDisplayPage()),
+    ),
+    GoRoute(
+      path: '/contributors',
+      name: 'contributors',
+      pageBuilder: (BuildContext context, GoRouterState state) =>
+          fadePage(const ContributorsPage()),
+    ),
     GoRoute(
       path: RouteNames.search,
       name: 'search',
@@ -43,12 +66,15 @@ final GoRouter appRouter = GoRouter(
       pageBuilder: (BuildContext context, GoRouterState state) {
         // 优先取 extra 携带的完整 ImageItem（含标签）；
         // url 查询参数兼容保留（深链与旧调用方式）。
-        final ImageItem? extraItem =
-            state.extra is ImageItem ? state.extra! as ImageItem : null;
-        return zoomFadePage(ImagePreviewPage(
-          item: extraItem,
-          imageUrl: state.uri.queryParameters[AppConstants.previewUrlParam],
-        ));
+        final ImageItem? extraItem = state.extra is ImageItem
+            ? state.extra! as ImageItem
+            : null;
+        return zoomFadePage(
+          ImagePreviewPage(
+            item: extraItem,
+            imageUrl: state.uri.queryParameters[AppConstants.previewUrlParam],
+          ),
+        );
       },
     ),
     GoRoute(
