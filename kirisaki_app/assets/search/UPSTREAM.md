@@ -1,5 +1,7 @@
 # DanbooruSearchOnline 本地词库
 
+用户明确确认的 Zerochan 标签映射另行保存在本机，按图源地址、内容显示模式和词库英文标签区分；重启后可复用。自动简化回退的关键词不会保存。可在“设置 → 数据管理 → 已确认标签”清除后重新选择，“清空全部本地数据”也会清除这些记录。中文同名条目的消歧选择仍保留。
+
 来源：https://github.com/SuzumiyaAkizuki/DanbooruSearchOnline
 
 作者：SuzumiyaAkizuki；上游提交：`6cf30e7d38b729eb18fe8903f242dbbc5ce13399`。

@@ -1,4 +1,5 @@
 import 'package:kirisaki_app/core/source/chinese_search_dictionary.dart';
+import 'package:kirisaki_app/core/source/confirmed_tag_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 
@@ -152,6 +153,19 @@ void main() {
       await tester.tap(find.text('Solo'));
       await tester.pumpAndSettle();
       expect(requests.last.path, '/Solo');
+      requests.clear();
+      await tester.enterText(find.byKey(const Key('searchInput')), 'solo');
+      await tester.tap(find.byIcon(Icons.arrow_forward));
+      await tester.pumpAndSettle();
+      expect(requests.map((uri) => uri.path), ['/Solo']);
+      expect(find.text('选择 Zerochan 标签'), findsNothing);
+      await ConfirmedTagService().clear();
+      await tester.enterText(find.byKey(const Key('searchInput')), 'solo');
+      await tester.tap(find.byIcon(Icons.arrow_forward));
+      await tester.pumpAndSettle();
+      expect(find.text('选择 Zerochan 标签'), findsOneWidget);
+      await tester.tap(find.text('Solo'));
+      await tester.pumpAndSettle();
       expect(
         tester
             .widget<TextField>(find.byKey(const Key('searchInput')))

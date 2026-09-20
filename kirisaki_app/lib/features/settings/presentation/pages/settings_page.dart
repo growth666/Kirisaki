@@ -9,6 +9,7 @@ import '../../../../core/profile/history_service.dart';
 import '../../../../core/profile/search_history_service.dart';
 import '../../../../core/settings/settings_service.dart';
 import '../../../../core/source/source_service.dart';
+import '../../../../core/source/confirmed_tag_service.dart';
 
 /// 设置页面：下载设置、外观设置、缓存管理、数据管理、关于入口。
 class SettingsPage extends StatefulWidget {
@@ -33,7 +34,7 @@ class _SettingsPageState extends State<SettingsPage> {
       context: context,
       builder: (BuildContext context) => AlertDialog(
         title: const Text('清空全部本地数据'),
-        content: const Text('将清空收藏、浏览历史、搜索历史、下载记录与自定义图源，此操作不可恢复。确定继续吗？'),
+        content: const Text('将清空收藏、浏览历史、搜索历史、下载记录、自定义图源与已确认标签，此操作不可恢复。确定继续吗？'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
@@ -51,6 +52,7 @@ class _SettingsPageState extends State<SettingsPage> {
     }
     try {
       await SourceService.instance.reset();
+      await ConfirmedTagService().clear();
       await Future.wait(<Future<void>>[
         FavoriteService.instance.clearAll(),
         HistoryService.instance.clear(),
@@ -72,6 +74,39 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   /// 下载位置当前状态描述（各平台语义）。
+  Future<void> _clearConfirmedTags() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('清除已确认标签'),
+        content: const Text('下次搜索对应词条时，将重新查询并选择 Zerochan 标签。内置词库不会被删除。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('清除'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    try {
+      await ConfirmedTagService().clear();
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('已确认标签已清除')));
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('清除失败，请重试')));
+      }
+    }
+  }
+
   String _downloadDirDescription() {
     final String? dir = _settings.downloadDir;
     if (dir == null) {
@@ -192,6 +227,13 @@ class _SettingsPageState extends State<SettingsPage> {
               // —— 数据管理 ——
               const _GroupHeader('数据管理'),
               ListTile(
+                leading: const Icon(Icons.translate),
+                title: const Text('已确认标签'),
+                subtitle: const Text('记住 Zerochan 标签选择；清除后可重新选择'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: _clearConfirmedTags,
+              ),
+              ListTile(
                 leading: Icon(
                   Icons.delete_forever_outlined,
                   color: theme.colorScheme.error,
@@ -200,7 +242,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   '清空全部本地数据',
                   style: TextStyle(color: theme.colorScheme.error),
                 ),
-                subtitle: const Text('收藏、浏览、搜索、下载记录与自定义图源'),
+                subtitle: const Text('收藏、浏览、搜索、下载记录、自定义图源与已确认标签'),
                 onTap: _confirmClearAllData,
               ),
               // —— 关于 ——

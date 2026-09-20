@@ -8,6 +8,7 @@ import '../../../../core/profile/search_history_service.dart';
 import '../../../../core/settings/settings_service.dart';
 import '../../../../core/source/builtin_sources.dart';
 import '../../../../core/source/chinese_search_dictionary.dart';
+import '../../../../core/source/confirmed_tag_service.dart';
 import '../../../../core/source/image_item.dart';
 import '../../../../core/source/source_config.dart';
 import '../../../../core/source/source_parse_result.dart';
@@ -322,47 +323,85 @@ class _SearchPageState extends State<SearchPage>
         );
         if (!mounted || before != _requestGeneration) return;
         if (needsLookup) {
-          _showSnackBar('正在查询 Zerochan 对应标签…');
-          final tags = await _service.zerochanCandidates(source, keyword);
+          final mappingTag = keyword;
+          final mappingScope = jsonEncode([
+            source.id,
+            source.baseUrl,
+            _showAdultContent,
+          ]);
+          String? remembered;
+          try {
+            remembered = await ConfirmedTagService().lookup(
+              mappingScope,
+              mappingTag,
+            );
+          } catch (_) {
+            if (mounted && before == _requestGeneration) {
+              _showSnackBar('读取已确认标签失败，本次重新查询');
+            }
+          }
           if (!mounted || before != _requestGeneration) return;
-          if (tags.isEmpty) {
-            keyword = SourceParseService.zerochanSearchKeyword(keyword);
+          if (remembered != null) {
+            keyword = remembered;
             _searchController.text = keyword;
-            _showSnackBar('未找到标签提示，继续尝试搜索：$keyword');
+            _showSnackBar('使用已确认标签：$keyword；可在设置中清除记录');
           } else {
-            final selected = await showDialog<String>(
-              context: context,
-              builder: (context) => AlertDialog(
-                title: const Text('选择 Zerochan 标签'),
-                content: SizedBox(
-                  width: 360,
-                  child: SingleChildScrollView(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Text('以下为站点候选，可能包含相关人物或作品，请确认：'),
-                        for (final tag in tags)
-                          ListTile(
-                            title: Text(tag),
-                            onTap: () => Navigator.pop(context, tag),
-                          ),
-                      ],
+            _showSnackBar('正在查询 Zerochan 对应标签…');
+            final tags = await _service.zerochanCandidates(source, keyword);
+            if (!mounted || before != _requestGeneration) return;
+            if (tags.isEmpty) {
+              keyword = SourceParseService.zerochanSearchKeyword(keyword);
+              _searchController.text = keyword;
+              _showSnackBar('未找到标签提示，继续尝试搜索：$keyword');
+            } else {
+              final selected = await showDialog<String>(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text('选择 Zerochan 标签'),
+                  content: SizedBox(
+                    width: 360,
+                    child: SingleChildScrollView(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text('以下为站点候选，可能包含相关人物或作品，请确认：'),
+                          for (final tag in tags)
+                            ListTile(
+                              title: Text(tag),
+                              onTap: () => Navigator.pop(context, tag),
+                            ),
+                        ],
+                      ),
                     ),
                   ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('取消'),
+                    ),
+                  ],
                 ),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text('取消'),
-                  ),
-                ],
-              ),
-            );
-            if (!mounted || selected == null || before != _requestGeneration) {
-              return;
+              );
+              if (!mounted ||
+                  selected == null ||
+                  before != _requestGeneration) {
+                return;
+              }
+              keyword = selected;
+              _searchController.text = keyword;
+              try {
+                await ConfirmedTagService().save(
+                  mappingScope,
+                  mappingTag,
+                  selected,
+                );
+              } catch (_) {
+                if (mounted && before == _requestGeneration) {
+                  _showSnackBar('标签保存失败，本次搜索继续，下次需重新确认');
+                }
+              }
+              if (!mounted || before != _requestGeneration) return;
             }
-            keyword = selected;
-            _searchController.text = keyword;
           }
         }
       } catch (_) {

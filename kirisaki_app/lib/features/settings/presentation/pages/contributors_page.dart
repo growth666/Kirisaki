@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 class ContributorsPage extends StatelessWidget {
   const ContributorsPage({super.key});
 
-  static const names = ['失去重力', '徐氏'];
+  static const names = ['失去重力', '徐氏', 'SuzumiyaAkizuki'];
 
   @override
   Widget build(BuildContext context) {
@@ -64,7 +64,7 @@ class ContributorsPage extends StatelessWidget {
                             size: 18,
                             color: colors.primary,
                           ),
-                          label: const Text('2 位特别鸣谢'),
+                          label: Text('${names.length} 位特别鸣谢'),
                           side: BorderSide.none,
                           backgroundColor: colors.surface,
                         ),
@@ -122,7 +122,9 @@ class ContributorsPage extends StatelessWidget {
                                 ),
                                 const SizedBox(height: 6),
                                 Text(
-                                  'VIP · 特别鸣谢',
+                                  names[i] == 'SuzumiyaAkizuki'
+                                      ? '感谢词库 · DanbooruSearchOnline'
+                                      : 'VIP · 特别鸣谢',
                                   style: theme.textTheme.labelMedium?.copyWith(
                                     color: colors.primary,
                                   ),

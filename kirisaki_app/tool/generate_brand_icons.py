@@ -5,15 +5,17 @@ from pathlib import Path
 from PIL import Image, ImageDraw
 
 ROOT = Path(__file__).resolve().parents[1]
-BACKGROUND = '#FFFFFF'
+BACKGROUND = '#383838'
 SOURCE = ROOT / 'assets/branding/source.png'
 
 
 def render(size, rounded=False, inset=1):
     source = Image.open(SOURCE).convert('RGBA')
-    # Square upper-body crop: preserve the ribbon tip, smile and scarf.
-    side = min(source.size)
-    crop = source.crop((0, 0, side, side))
+    # Coordinates use the 1888px-wide reference preview; retain source resolution.
+    scale = source.width / 1888
+    left = round(480 * scale)
+    side = round(920 * scale)
+    crop = source.crop((left, 0, left + side, side))
     canvas = Image.new('RGBA', (size, size), BACKGROUND)
     width = round(size * inset)
     crop = crop.resize((width, width), Image.Resampling.LANCZOS)
@@ -29,7 +31,9 @@ def render(size, rounded=False, inset=1):
 def save(image, relative):
     path = ROOT / relative
     path.parent.mkdir(parents=True, exist_ok=True)
-    image.save(path)
+    temporary = path.with_name(path.stem + '.tmp' + path.suffix)
+    image.save(temporary)
+    temporary.replace(path)
 
 
 def main():
