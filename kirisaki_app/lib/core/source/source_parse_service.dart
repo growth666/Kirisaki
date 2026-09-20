@@ -46,6 +46,118 @@ class SourceParseService {
 
   void close() => _client.close();
 
+  final Map<String, List<String>> _zerochanCandidates = {};
+
+  /// Keep the name intact; only remove trailing Booru disambiguation suffixes.
+  static String zerochanSearchKeyword(String tag) {
+    final normalized = tag
+        .replaceAll('_', ' ')
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
+    final name = normalized
+        .replaceFirst(RegExp(r'(\s+\([^()]*\))+$'), '')
+        .trim();
+    return name.isEmpty ? normalized : name;
+  }
+
+  /// The official autocomplete returns name|category|parent, one per line.
+  Future<List<String>> zerochanCandidates(
+    SourceConfig config,
+    String tag,
+  ) async {
+    if (_zerochanCandidates.containsKey(tag)) return _zerochanCandidates[tag]!;
+    final normalized = tag
+        .replaceAll('_', ' ')
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
+    final name = zerochanSearchKeyword(tag);
+    final words = name.split(' ');
+    // At most three requests; never broaden to an arbitrary single word.
+    final queries = <String>{
+      normalized,
+      name,
+      if (words.length == 2) words.reversed.join(' '),
+    };
+    for (final query in queries) {
+      final candidates = await _fetchZerochanCandidates(config, query);
+      if (candidates.isNotEmpty) {
+        if (_zerochanCandidates.length >= 100) {
+          _zerochanCandidates.remove(_zerochanCandidates.keys.first);
+        }
+        _zerochanCandidates[tag] = candidates;
+        return candidates;
+      }
+    }
+    return [];
+  }
+
+  Future<List<String>> _fetchZerochanCandidates(
+    SourceConfig config,
+    String tag,
+  ) async {
+    final query = tag.replaceAll('_', ' ');
+    final uri = Uri.parse(config.baseUrl)
+        .resolve('/suggest')
+        .replace(queryParameters: {'q': query});
+    final response = await _client
+        .get(
+          _applyWebCorsProxy(config, uri),
+          headers: {'User-Agent': config.userAgent},
+        )
+        .timeout(config.timeout);
+    if (response.statusCode != 200) {
+      throw FormatException('标签查询失败（HTTP ${response.statusCode}）');
+    }
+    final candidates = <String>{};
+    for (final line in const LineSplitter().convert(
+      utf8.decode(response.bodyBytes),
+    )) {
+      final fields = line.split('|');
+      if (fields.length != 3 ||
+          fields[0].trim().isEmpty ||
+          fields[0].contains('<')) {
+        continue;
+      }
+      candidates.add(fields[0].trim());
+    }
+    final result = candidates.take(10).toList();
+    return result;
+  }
+
+  Future<http.Response> _searchResponse(SourceConfig config, Uri uri) async {
+    if (kIsWeb || config.jsonFormat != SourceJsonFormat.zerochan) {
+      return _client.get(uri, headers: {'User-Agent': config.userAgent});
+    }
+    // Zerochan canonical-tag redirects omit ?json, pagination and limit.
+    // Follow only same-origin HTTPS redirects, preserving API parameters and UA.
+    final original = uri;
+    final visited = <String>{};
+    for (var hop = 0; hop < 5; hop++) {
+      if (!visited.add(uri.toString())) {
+        throw const FormatException('图源标签重定向循环');
+      }
+      final request = http.Request('GET', uri)
+        ..followRedirects = false
+        ..headers['User-Agent'] = config.userAgent;
+      final response = await http.Response.fromStream(
+        await _client.send(request),
+      );
+      if (![301, 302, 303, 307, 308].contains(response.statusCode)) {
+        return response;
+      }
+      final location = response.headers['location'];
+      if (location == null) throw const FormatException('图源重定向缺少地址');
+      final next = uri.resolve(location);
+      if (next.origin != original.origin || next.scheme != 'https') {
+        throw const FormatException('图源重定向到了不受信任的地址');
+      }
+      uri = next.replace(
+        queryParameters: {...next.queryParameters, ...original.queryParameters},
+      );
+    }
+    throw const FormatException('图源重定向次数过多');
+  }
+
   Future<ImageItem> resolveImage(ImageItem item) async {
     if (item.detailUrl == null) return item;
     var uri = Uri.parse(item.detailUrl!);
@@ -110,16 +222,16 @@ class SourceParseService {
 
     final http.Response response;
     try {
-      response = await _client
-          .get(
-            requestUri,
-            headers: <String, String>{'User-Agent': config.userAgent},
-          )
-          .timeout(config.timeout);
+      response = await _searchResponse(
+        config,
+        requestUri,
+      ).timeout(config.timeout);
     } on TimeoutException {
       return const SourceParseResult.failure('网络超时，请稍后重试');
     } on http.ClientException {
       return const SourceParseResult.failure('网络连接失败，请检查网络');
+    } on FormatException catch (error) {
+      return SourceParseResult.failure('图源地址异常：${error.message}');
     } catch (e) {
       return SourceParseResult.failure('网络请求异常：$e');
     }
@@ -138,6 +250,11 @@ class SourceParseService {
     }
     if (response.statusCode == 422) {
       return const SourceParseResult.failure('搜索条件不被图源接受（422），请减少标签或修改关键词');
+    }
+    if (response.statusCode == 503) {
+      return const SourceParseResult.failure(
+        '图源暂时不可用或限制程序访问（503），请稍后重试或切换图源。这不表示关键词没有图片',
+      );
     }
     if (response.statusCode != 200) {
       return SourceParseResult.failure('服务器响应异常（HTTP ${response.statusCode}）');

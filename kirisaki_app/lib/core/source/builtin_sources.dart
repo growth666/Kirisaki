@@ -25,14 +25,6 @@ abstract final class BuiltinSources {
       template: '/{keyword}?json&p={page}&l={limit}',
       format: SourceJsonFormat.zerochan,
     ),
-    _json(
-      id: 'tbib',
-      name: 'TBIB (Safe)',
-      baseUrl: 'https://tbib.org',
-      template: '/index.php?page=dapi&s=post&q=index&json=1&tags={keyword}%20rating%3Asafe&limit={limit}&pid={page}',
-      format: SourceJsonFormat.gelbooru,
-      pageOffset: -1,
-    ),
   ];
 
   /// 首页推荐流图源（国内可直连的随机二次元图源）。

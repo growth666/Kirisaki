@@ -1,4 +1,6 @@
+import 'package:kirisaki_app/core/source/chinese_search_dictionary.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
 
 import 'dart:async';
 
@@ -88,6 +90,217 @@ GoRouter _testRouter(
 }
 
 void main() {
+  for (final status in [200, 503]) {
+    testWidgets(
+      'Zerochan still searches when suggestions return $status without candidates',
+      (tester) async {
+        final requests = <Uri>[];
+        final service = SourceParseService(
+          client: MockClient((request) async {
+            requests.add(request.url);
+            if (request.url.path == '/suggest') {
+              return http.Response('', status);
+            }
+            return http.Response('{"items":[]}', 200);
+          }),
+        );
+        await tester.pumpWidget(
+          MaterialApp.router(routerConfig: _testRouter(service)),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.widgetWithText(ChoiceChip, 'Zerochan'));
+        await tester.pumpAndSettle();
+        await tester.enterText(find.byKey(const Key('searchInput')), 'solo');
+        await tester.tap(find.byIcon(Icons.arrow_forward));
+        await tester.pumpAndSettle();
+        expect(requests.map((uri) => uri.path), ['/suggest', '/solo']);
+        expect(find.text('选择 Zerochan 标签'), findsNothing);
+        expect(
+          tester
+              .widget<TextField>(find.byKey(const Key('searchInput')))
+              .controller!
+              .text,
+          'solo',
+        );
+      },
+    );
+  }
+  testWidgets(
+    'Zerochan imported tag requires site candidate confirmation before search',
+    (tester) async {
+      final requests = <Uri>[];
+      final service = SourceParseService(
+        client: MockClient((request) async {
+          requests.add(request.url);
+          if (request.url.path == '/suggest')
+            return http.Response('Solo|Theme|-', 200);
+          return http.Response('{"items":[]}', 200);
+        }),
+      );
+      await tester.pumpWidget(
+        MaterialApp.router(routerConfig: _testRouter(service)),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(ChoiceChip, 'Zerochan'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(const Key('searchInput')), 'solo');
+      await tester.tap(find.byIcon(Icons.arrow_forward));
+      await tester.pumpAndSettle();
+      expect(requests, hasLength(1));
+      expect(requests.single.path, '/suggest');
+      expect(find.text('选择 Zerochan 标签'), findsOneWidget);
+      await tester.tap(find.text('Solo'));
+      await tester.pumpAndSettle();
+      expect(requests.last.path, '/Solo');
+      expect(
+        tester
+            .widget<TextField>(find.byKey(const Key('searchInput')))
+            .controller!
+            .text,
+        'Solo',
+      );
+    },
+  );
+  setUpAll(() async {
+    TestWidgetsFlutterBinding.ensureInitialized();
+    await ChineseSearchDictionary.load();
+  });
+  testWidgets(
+    'mouse candidate click survives pointer-down and supersedes loading recommendation',
+    (tester) async {
+      final pending = Completer<http.Response>();
+      final queries = <String?>[];
+      final service = SourceParseService(
+        client: MockClient((request) async {
+          if (request.url.host == 't.alcy.cc') return pending.future;
+          queries.add(request.url.queryParameters['tags']);
+          return http.Response('[]', 200);
+        }),
+      );
+      await tester.pumpWidget(
+        MaterialApp.router(
+          routerConfig: _testRouter(service, autoLoadRecommend: true),
+        ),
+      );
+      await tester.pump();
+      await tester.pump();
+      await tester.enterText(find.byKey(const Key('searchInput')), '蕾姆');
+      await tester.pump();
+      final candidate = find.widgetWithText(ActionChip, '蕾姆 · Re:从零开始的异世界生活');
+      final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+      await mouse.addPointer(location: tester.getCenter(candidate));
+      await mouse.down(tester.getCenter(candidate));
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(candidate, findsOneWidget);
+      await mouse.up();
+      await tester.pumpAndSettle();
+      expect(queries, ['rem_(re:zero)']);
+      expect(
+        tester
+            .widget<TextField>(find.byKey(const Key('searchInput')))
+            .controller!
+            .text,
+        'rem_(re:zero)',
+      );
+      pending.complete(http.Response(_alcyFixture, 200));
+      await tester.pumpAndSettle();
+      expect(find.byType(Card), findsNothing);
+      await mouse.removePointer();
+    },
+  );
+  testWidgets('输入部分中文名显示候选且点击才搜索', (tester) async {
+    final queries = <String?>[];
+    final service = SourceParseService(
+      client: MockClient((request) async {
+        queries.add(request.url.queryParameters['tags']);
+        return http.Response('[]', 200);
+      }),
+    );
+    await tester.pumpWidget(
+      MaterialApp.router(routerConfig: _testRouter(service)),
+    );
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('searchInput')), '中野');
+    await tester.pumpAndSettle();
+    expect(queries, isEmpty);
+    final candidate = find.widgetWithText(ActionChip, '中野三玖 · 五等分的新娘');
+    expect(candidate, findsOneWidget);
+    await tester.ensureVisible(candidate);
+    await tester.pumpAndSettle();
+    await tester.tap(candidate);
+    await tester.pumpAndSettle();
+    expect(queries, ['nakano_miku']);
+    expect(find.text('中文候选 · 左右滑动，点击搜索'), findsNothing);
+    expect(find.text('中文搜索辅助'), findsNothing);
+  });
+  testWidgets('同名角色展示作品并按用户选择搜索', (tester) async {
+    final queries = <String?>[];
+    final service = SourceParseService(
+      client: MockClient((request) async {
+        queries.add(request.url.queryParameters['tags']);
+        return http.Response('[]', 200);
+      }),
+    );
+    await tester.pumpWidget(
+      MaterialApp.router(routerConfig: _testRouter(service)),
+    );
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('searchInput')), '小樱');
+    await tester.tap(find.byIcon(Icons.arrow_forward));
+    await tester.pumpAndSettle();
+    expect(queries, isEmpty);
+    expect(find.text('春野樱 · 火影忍者'), findsOneWidget);
+    expect(find.text('木之本樱 · 魔卡少女樱'), findsOneWidget);
+    await tester.tap(find.text('kinomoto_sakura'));
+    await tester.pumpAndSettle();
+    expect(queries, ['kinomoto_sakura']);
+  });
+  testWidgets('中文候选确认后使用图源标签发起请求', (tester) async {
+    final queries = <String?>[];
+    final service = SourceParseService(
+      client: MockClient((request) async {
+        queries.add(request.url.queryParameters['tags']);
+        return http.Response('[]', 200);
+      }),
+    );
+    await tester.pumpWidget(
+      MaterialApp.router(routerConfig: _testRouter(service)),
+    );
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('searchInput')), '蕾姆');
+    await tester.tap(find.byIcon(Icons.arrow_forward));
+    await tester.pumpAndSettle();
+    expect(queries, isEmpty);
+    expect(find.text('蕾姆 · Re:从零开始的异世界生活'), findsOneWidget);
+    await tester.tap(find.text('rem_(re:zero)'));
+    await tester.pumpAndSettle();
+    expect(queries, ['rem_(re:zero)']);
+  });
+
+  testWidgets('未收录中文可取消或显式原词搜索', (tester) async {
+    final queries = <String?>[];
+    final service = SourceParseService(
+      client: MockClient((request) async {
+        queries.add(request.url.queryParameters['tags']);
+        return http.Response('[]', 200);
+      }),
+    );
+    await tester.pumpWidget(
+      MaterialApp.router(routerConfig: _testRouter(service)),
+    );
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('searchInput')), '未收录人物');
+    await tester.tap(find.byIcon(Icons.arrow_forward));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('返回修改'));
+    await tester.pumpAndSettle();
+    expect(queries, isEmpty);
+    await tester.tap(find.byIcon(Icons.arrow_forward));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('直接搜索原词'));
+    await tester.pumpAndSettle();
+    expect(queries, ['未收录人物']);
+  });
   testWidgets('内容切换重新请求并丢弃旧结果', (tester) async {
     final settings = SettingsService.instance;
     await settings.setShowAdultContent(false);

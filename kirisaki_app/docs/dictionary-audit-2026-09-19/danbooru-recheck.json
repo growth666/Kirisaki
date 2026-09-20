@@ -1,0 +1,25 @@
+{
+  "platform": "windows",
+  "network": "direct_no_proxy",
+  "source": "danbooru_safe",
+  "rows": [
+    {
+      "label": "naruto_(series)",
+      "keyword": "naruto_(series)",
+      "timeUtc": "2026-09-19T12:49:55.009880Z",
+      "url": "https://safebooru.donmai.us/posts.json?tags=naruto_(series)&limit=2&page=1",
+      "http": 200,
+      "result": "has_results",
+      "count": 2
+    },
+    {
+      "label": "naruto",
+      "keyword": "naruto",
+      "timeUtc": "2026-09-19T12:49:56.652339Z",
+      "url": "https://safebooru.donmai.us/posts.json?tags=naruto&limit=2&page=1",
+      "http": 200,
+      "result": "empty",
+      "count": 0
+    }
+  ]
+}

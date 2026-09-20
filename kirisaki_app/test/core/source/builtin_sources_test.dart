@@ -116,12 +116,11 @@ void main() {
     expect(result.errorMessage, SourceParseService.noImagesMessage);
     expect(result.suggestedTags, isEmpty);
   });
-  test('four official sources and separate unchanged recommendation', () {
+  test('three search sources and separate unchanged recommendation', () {
     expect(BuiltinSources.all.map((s) => s.id), [
       'safebooru',
       'danbooru_safe',
       'zerochan',
-      'tbib',
     ]);
     expect(BuiltinSources.recommend.baseUrl, 'https://t.alcy.cc');
     expect(BuiltinSources.recommend.searchUrlTemplate, '/json?pc={limit}');
@@ -178,7 +177,7 @@ void main() {
     expect(item.tags, ['blue_sky', 'cloud']);
   });
 
-  test('TBIB legacy fields resolve full image and JPEG thumbnail', () async {
+  test('Gelbooru legacy fields resolve full image and JPEG thumbnail', () async {
     final service = SourceParseService(
       client: MockClient(
         (_) async => http.Response(
@@ -187,16 +186,16 @@ void main() {
         ),
       ),
     );
-    final result = await service.search(BuiltinSources.all[3], keyword: 'sky');
+    final result = await service.search(BuiltinSources.all[0], keyword: 'sky');
     final item = result.items.single;
-    expect(item.imageUrl, 'https://tbib.org/images/5/abc.png');
+    expect(item.imageUrl, 'https://safebooru.org/images/5/abc.png');
     expect(
       item.thumbnailUrl,
-      'https://tbib.org/thumbnails/5/thumbnail_abc.jpg',
+      'https://safebooru.org/thumbnails/5/thumbnail_abc.jpg',
     );
     expect(
       item.sourcePage,
-      'https://tbib.org/index.php?page=post&s=view&id=10',
+      'https://safebooru.org/index.php?page=post&s=view&id=10',
     );
   });
 

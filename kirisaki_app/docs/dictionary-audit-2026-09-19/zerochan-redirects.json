@@ -1,0 +1,74 @@
+[
+  {
+    "tag": "Starry Sky",
+    "headers": [
+      "HTTP/1.1 301 Moved Permanently",
+      "Location: /Starry%E2%98%86Sky"
+    ],
+    "error": ""
+  },
+  {
+    "tag": "Flowers",
+    "headers": [
+      "HTTP/1.1 301 Moved Permanently",
+      "Location: /Flower"
+    ],
+    "error": ""
+  },
+  {
+    "tag": "Cherry Blossoms",
+    "headers": [
+      "HTTP/1.1 301 Moved Permanently",
+      "Location: /Cherry+Blossom"
+    ],
+    "error": ""
+  },
+  {
+    "tag": "Twintails",
+    "headers": [
+      "HTTP/1.1 301 Moved Permanently",
+      "Location: /Twin+Tails"
+    ],
+    "error": ""
+  },
+  {
+    "tag": "Cat Ears",
+    "headers": [
+      "HTTP/1.1 301 Moved Permanently",
+      "Location: /Nekomimi"
+    ],
+    "error": ""
+  },
+  {
+    "tag": "Maid",
+    "headers": [
+      "HTTP/1.1 301 Moved Permanently",
+      "Location: /Maid+Outfit"
+    ],
+    "error": ""
+  },
+  {
+    "tag": "Bow",
+    "headers": [
+      "HTTP/1.1 301 Moved Permanently",
+      "Location: /Null"
+    ],
+    "error": ""
+  },
+  {
+    "tag": "Hyuga Hinata",
+    "headers": [
+      "HTTP/1.1 301 Moved Permanently",
+      "Location: /Hyuuga+Hinata"
+    ],
+    "error": ""
+  },
+  {
+    "tag": "Yor Forger",
+    "headers": [
+      "HTTP/1.1 301 Moved Permanently",
+      "Location: /Yor+Briar"
+    ],
+    "error": ""
+  }
+]

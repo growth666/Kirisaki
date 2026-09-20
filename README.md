@@ -46,7 +46,6 @@ Kirisaki 的名字灵感来自《伪恋》中的桐崎千棘。项目将图片�
 | Safebooru | 关键词搜索，使用 DAPI 接口 |
 | Danbooru (Safe) | 使用 `safebooru.donmai.us`，按站点标签搜索 |
 | Zerochan | 关键词搜索；部分同名角色可选择具体人物条目 |
-| TBIB (Safe) | 搜索请求包含 `rating:safe` |
 | Alcy 推荐源 | 推荐图片流，独立于搜索图源管理 |
 
 图源来自第三方网站，可用性会随接口、网络和访问限制变化，不承诺所有地区均可直连。既往测试结果与未验证项见 [图源核验记录](kirisaki_app/docs/source-verification.md)。

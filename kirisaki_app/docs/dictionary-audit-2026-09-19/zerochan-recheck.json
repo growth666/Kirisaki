@@ -1,0 +1,67 @@
+{
+  "platform": "windows",
+  "network": "direct_no_proxy",
+  "source": "zerochan",
+  "rows": [
+    {
+      "label": "Starry Sky",
+      "keyword": "Starry Sky",
+      "timeUtc": "2026-09-19T12:49:55.010891Z",
+      "url": "https://www.zerochan.net/Starry%20Sky?json&p=1&l=2",
+      "http": 503,
+      "result": "http_error"
+    },
+    {
+      "label": "Flowers",
+      "keyword": "Flowers",
+      "timeUtc": "2026-09-19T12:49:56.580776Z",
+      "url": "https://www.zerochan.net/Flowers?json&p=1&l=2",
+      "http": 503,
+      "result": "http_error"
+    },
+    {
+      "label": "Cherry Blossoms",
+      "keyword": "Cherry Blossoms",
+      "timeUtc": "2026-09-19T12:49:57.746449Z",
+      "url": "https://www.zerochan.net/Cherry%20Blossoms?json&p=1&l=2",
+      "http": 503,
+      "result": "http_error"
+    },
+    {
+      "label": "Twintails",
+      "keyword": "Twintails",
+      "timeUtc": "2026-09-19T12:49:58.908686Z",
+      "result": "skipped_after_three_failures"
+    },
+    {
+      "label": "Cat Ears",
+      "keyword": "Cat Ears",
+      "timeUtc": "2026-09-19T12:49:58.908686Z",
+      "result": "skipped_after_three_failures"
+    },
+    {
+      "label": "Maid",
+      "keyword": "Maid",
+      "timeUtc": "2026-09-19T12:49:58.908686Z",
+      "result": "skipped_after_three_failures"
+    },
+    {
+      "label": "Bow",
+      "keyword": "Bow",
+      "timeUtc": "2026-09-19T12:49:58.908686Z",
+      "result": "skipped_after_three_failures"
+    },
+    {
+      "label": "Rem (Re:Zero)",
+      "keyword": "Rem (Re:Zero)",
+      "timeUtc": "2026-09-19T12:49:58.908686Z",
+      "result": "skipped_after_three_failures"
+    },
+    {
+      "label": "Scenery",
+      "keyword": "Scenery",
+      "timeUtc": "2026-09-19T12:49:58.908686Z",
+      "result": "skipped_after_three_failures"
+    }
+  ]
+}

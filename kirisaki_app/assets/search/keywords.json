@@ -1,0 +1,764 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "label": "蕾姆 · Re:从零开始的异世界生活",
+      "aliases": [
+        "蕾姆",
+        "雷姆"
+      ],
+      "booru": "rem_(re:zero)",
+      "zerochan": "Rem (Re:Zero)"
+    },
+    {
+      "label": "拉姆 · Re:从零开始的异世界生活",
+      "aliases": [
+        "拉姆"
+      ],
+      "booru": "ram_(re:zero)",
+      "zerochan": "Ram (Re:Zero)"
+    },
+    {
+      "label": "初音未来 · VOCALOID",
+      "aliases": [
+        "初音",
+        "初音未来",
+        "初音未來"
+      ],
+      "booru": "hatsune_miku",
+      "zerochan": "Hatsune Miku"
+    },
+    {
+      "label": "桐崎千棘 · 伪恋",
+      "aliases": [
+        "桐崎千棘",
+        "千棘"
+      ],
+      "booru": "kirisaki_chitoge",
+      "zerochan": "Kirisaki Chitoge"
+    },
+    {
+      "label": "伪恋 · 作品",
+      "aliases": [
+        "伪恋",
+        "偽戀"
+      ],
+      "booru": "nisekoi",
+      "zerochan": "Nisekoi"
+    },
+    {
+      "label": "火影忍者 · 作品",
+      "aliases": [
+        "火影",
+        "火影忍者"
+      ],
+      "booru": "naruto",
+      "zerochan": "NARUTO",
+      "danbooru": "naruto_(series)"
+    },
+    {
+      "label": "风景 · 标签",
+      "aliases": [
+        "风景",
+        "風景"
+      ],
+      "booru": "scenery",
+      "zerochan": "Scenery"
+    },
+    {
+      "label": "天空",
+      "aliases": [
+        "天空"
+      ],
+      "booru": "sky",
+      "zerochan": "Sky"
+    },
+    {
+      "label": "蓝天",
+      "aliases": [
+        "蓝天",
+        "藍天"
+      ],
+      "booru": "blue_sky",
+      "zerochan": "Blue Sky"
+    },
+    {
+      "label": "云朵",
+      "aliases": [
+        "云",
+        "云朵",
+        "雲",
+        "雲朵"
+      ],
+      "booru": "cloud",
+      "zerochan": "Clouds"
+    },
+    {
+      "label": "星空",
+      "aliases": [
+        "星空"
+      ],
+      "booru": "starry_sky",
+      "zerochan": "Stars (Sky)"
+    },
+    {
+      "label": "夜晚",
+      "aliases": [
+        "夜晚",
+        "夜景"
+      ],
+      "booru": "night",
+      "zerochan": "Night"
+    },
+    {
+      "label": "日落",
+      "aliases": [
+        "日落",
+        "夕阳",
+        "夕陽"
+      ],
+      "booru": "sunset",
+      "zerochan": "Sunset"
+    },
+    {
+      "label": "海边",
+      "aliases": [
+        "海边",
+        "海邊",
+        "沙滩",
+        "沙灘"
+      ],
+      "booru": "beach",
+      "zerochan": "Beach"
+    },
+    {
+      "label": "海洋",
+      "aliases": [
+        "海",
+        "海洋",
+        "大海"
+      ],
+      "booru": "ocean",
+      "zerochan": "Ocean"
+    },
+    {
+      "label": "雨",
+      "aliases": [
+        "雨",
+        "下雨",
+        "雨天"
+      ],
+      "booru": "rain",
+      "zerochan": "Rain"
+    },
+    {
+      "label": "雪",
+      "aliases": [
+        "雪",
+        "下雪",
+        "雪景"
+      ],
+      "booru": "snow",
+      "zerochan": "Snow"
+    },
+    {
+      "label": "花朵",
+      "aliases": [
+        "花",
+        "花朵",
+        "鲜花",
+        "鮮花"
+      ],
+      "booru": "flower",
+      "zerochan": "Flower"
+    },
+    {
+      "label": "樱花",
+      "aliases": [
+        "樱花",
+        "櫻花"
+      ],
+      "booru": "cherry_blossoms",
+      "zerochan": "Cherry Blossom"
+    },
+    {
+      "label": "森林",
+      "aliases": [
+        "森林",
+        "树林",
+        "樹林"
+      ],
+      "booru": "forest",
+      "zerochan": "Forest"
+    },
+    {
+      "label": "月亮",
+      "aliases": [
+        "月亮",
+        "月球"
+      ],
+      "booru": "moon",
+      "zerochan": "Moon"
+    },
+    {
+      "label": "城市",
+      "aliases": [
+        "城市",
+        "都市"
+      ],
+      "booru": "city",
+      "zerochan": "City"
+    },
+    {
+      "label": "女孩",
+      "aliases": [
+        "女孩",
+        "女生",
+        "少女"
+      ],
+      "booru": "1girl"
+    },
+    {
+      "label": "男孩",
+      "aliases": [
+        "男孩",
+        "男生",
+        "少年"
+      ],
+      "booru": "1boy"
+    },
+    {
+      "label": "微笑",
+      "aliases": [
+        "微笑",
+        "笑容"
+      ],
+      "booru": "smile",
+      "zerochan": "Smile"
+    },
+    {
+      "label": "长发",
+      "aliases": [
+        "长发",
+        "長髮",
+        "長發"
+      ],
+      "booru": "long_hair",
+      "zerochan": "Long Hair"
+    },
+    {
+      "label": "短发",
+      "aliases": [
+        "短发",
+        "短髮",
+        "短發"
+      ],
+      "booru": "short_hair",
+      "zerochan": "Short Hair"
+    },
+    {
+      "label": "金发",
+      "aliases": [
+        "金发",
+        "金髮",
+        "金發"
+      ],
+      "booru": "blonde_hair",
+      "zerochan": "Blonde Hair"
+    },
+    {
+      "label": "白发",
+      "aliases": [
+        "白发",
+        "白髮",
+        "白發"
+      ],
+      "booru": "white_hair",
+      "zerochan": "White Hair"
+    },
+    {
+      "label": "黑发",
+      "aliases": [
+        "黑发",
+        "黑髮",
+        "黑發"
+      ],
+      "booru": "black_hair",
+      "zerochan": "Black Hair"
+    },
+    {
+      "label": "蓝眼睛",
+      "aliases": [
+        "蓝眼睛",
+        "蓝瞳",
+        "藍瞳"
+      ],
+      "booru": "blue_eyes",
+      "zerochan": "Blue Eyes"
+    },
+    {
+      "label": "红眼睛",
+      "aliases": [
+        "红眼睛",
+        "红瞳",
+        "紅瞳"
+      ],
+      "booru": "red_eyes",
+      "zerochan": "Red Eyes"
+    },
+    {
+      "label": "双马尾",
+      "aliases": [
+        "双马尾",
+        "雙馬尾"
+      ],
+      "booru": "twintails",
+      "zerochan": "Twin Tails"
+    },
+    {
+      "label": "猫耳",
+      "aliases": [
+        "猫耳",
+        "貓耳"
+      ],
+      "booru": "cat_ears",
+      "zerochan": "Nekomimi"
+    },
+    {
+      "label": "眼镜",
+      "aliases": [
+        "眼镜",
+        "眼鏡"
+      ],
+      "booru": "glasses",
+      "zerochan": "Glasses"
+    },
+    {
+      "label": "帽子",
+      "aliases": [
+        "帽子"
+      ],
+      "booru": "hat",
+      "zerochan": "Hat"
+    },
+    {
+      "label": "围巾",
+      "aliases": [
+        "围巾",
+        "圍巾"
+      ],
+      "booru": "scarf",
+      "zerochan": "Scarf"
+    },
+    {
+      "label": "和服",
+      "aliases": [
+        "和服"
+      ],
+      "booru": "kimono",
+      "zerochan": "Kimono"
+    },
+    {
+      "label": "女仆",
+      "aliases": [
+        "女仆",
+        "女僕"
+      ],
+      "booru": "maid",
+      "zerochan": "Maid Outfit"
+    },
+    {
+      "label": "校服",
+      "aliases": [
+        "校服",
+        "制服"
+      ],
+      "booru": "school_uniform",
+      "zerochan": "School Uniform"
+    },
+    {
+      "label": "连衣裙",
+      "aliases": [
+        "连衣裙",
+        "連衣裙"
+      ],
+      "booru": "dress",
+      "zerochan": "Dress"
+    },
+    {
+      "label": "蝴蝶结",
+      "aliases": [
+        "蝴蝶结",
+        "蝴蝶結"
+      ],
+      "booru": "bow"
+    },
+    {
+      "label": "御坂美琴 · 某科学的超电磁炮",
+      "aliases": [
+        "御坂美琴",
+        "美琴",
+        "炮姐"
+      ],
+      "booru": "misaka_mikoto",
+      "zerochan": "Misaka Mikoto"
+    },
+    {
+      "label": "白井黑子 · 某科学的超电磁炮",
+      "aliases": [
+        "白井黑子"
+      ],
+      "booru": "shirai_kuroko",
+      "zerochan": "Shirai Kuroko"
+    },
+    {
+      "label": "时崎狂三 · 约会大作战",
+      "aliases": [
+        "时崎狂三",
+        "時崎狂三",
+        "狂三"
+      ],
+      "booru": "tokisaki_kurumi",
+      "zerochan": "Tokisaki Kurumi"
+    },
+    {
+      "label": "五河琴里 · 约会大作战",
+      "aliases": [
+        "五河琴里",
+        "琴里"
+      ],
+      "booru": "itsuka_kotori",
+      "zerochan": "Itsuka Kotori"
+    },
+    {
+      "label": "结城明日奈 · 刀剑神域",
+      "aliases": [
+        "结城明日奈",
+        "結城明日奈",
+        "亚丝娜",
+        "亞絲娜",
+        "明日奈"
+      ],
+      "booru": "asuna_(sao)",
+      "zerochan": "Yuuki Asuna"
+    },
+    {
+      "label": "桐人 · 刀剑神域",
+      "aliases": [
+        "桐人",
+        "桐谷和人"
+      ],
+      "booru": "kirito",
+      "zerochan": "Kirigaya Kazuto"
+    },
+    {
+      "label": "爱蜜莉雅 · Re:从零开始的异世界生活",
+      "aliases": [
+        "爱蜜莉雅",
+        "愛蜜莉雅",
+        "艾米莉亚",
+        "艾米莉婭"
+      ],
+      "booru": "emilia_(re:zero)",
+      "zerochan": "Emilia"
+    },
+    {
+      "label": "小野寺小咲 · 伪恋",
+      "aliases": [
+        "小野寺小咲",
+        "小咲"
+      ],
+      "booru": "onodera_kosaki",
+      "zerochan": "Onodera Kosaki"
+    },
+    {
+      "label": "橘万里花 · 伪恋",
+      "aliases": [
+        "橘万里花",
+        "橘萬里花",
+        "万里花"
+      ],
+      "booru": "tachibana_marika",
+      "zerochan": "Tachibana Marika"
+    },
+    {
+      "label": "漩涡鸣人 · 火影忍者",
+      "aliases": [
+        "漩涡鸣人",
+        "漩渦鳴人",
+        "鸣人",
+        "鳴人"
+      ],
+      "booru": "uzumaki_naruto",
+      "zerochan": "Uzumaki Naruto"
+    },
+    {
+      "label": "宇智波佐助 · 火影忍者",
+      "aliases": [
+        "宇智波佐助",
+        "佐助"
+      ],
+      "booru": "uchiha_sasuke",
+      "zerochan": "Uchiha Sasuke"
+    },
+    {
+      "label": "春野樱 · 火影忍者",
+      "aliases": [
+        "春野樱",
+        "春野櫻",
+        "小樱",
+        "小櫻"
+      ],
+      "booru": "haruno_sakura",
+      "zerochan": "Haruno Sakura"
+    },
+    {
+      "label": "日向雏田 · 火影忍者",
+      "aliases": [
+        "日向雏田",
+        "日向雛田",
+        "雏田",
+        "雛田"
+      ],
+      "booru": "hyuuga_hinata",
+      "zerochan": "Hyuuga Hinata"
+    },
+    {
+      "label": "旗木卡卡西 · 火影忍者",
+      "aliases": [
+        "旗木卡卡西",
+        "卡卡西"
+      ],
+      "booru": "hatake_kakashi",
+      "zerochan": "Hatake Kakashi"
+    },
+    {
+      "label": "宇智波鼬 · 火影忍者",
+      "aliases": [
+        "宇智波鼬",
+        "鼬"
+      ],
+      "booru": "uchiha_itachi",
+      "zerochan": "Uchiha Itachi"
+    },
+    {
+      "label": "木之本樱 · 魔卡少女樱",
+      "aliases": [
+        "木之本樱",
+        "木之本櫻",
+        "小樱",
+        "小櫻"
+      ],
+      "booru": "kinomoto_sakura",
+      "zerochan": "Kinomoto Sakura"
+    },
+    {
+      "label": "中野一花 · 五等分的新娘",
+      "aliases": [
+        "中野一花",
+        "一花"
+      ],
+      "booru": "nakano_ichika",
+      "zerochan": "Nakano Ichika"
+    },
+    {
+      "label": "中野二乃 · 五等分的新娘",
+      "aliases": [
+        "中野二乃",
+        "二乃"
+      ],
+      "booru": "nakano_nino",
+      "zerochan": "Nakano Nino"
+    },
+    {
+      "label": "中野三玖 · 五等分的新娘",
+      "aliases": [
+        "中野三玖",
+        "三玖"
+      ],
+      "booru": "nakano_miku",
+      "zerochan": "Nakano Miku"
+    },
+    {
+      "label": "中野四叶 · 五等分的新娘",
+      "aliases": [
+        "中野四叶",
+        "中野四葉",
+        "四叶",
+        "四葉"
+      ],
+      "booru": "nakano_yotsuba",
+      "zerochan": "Nakano Yotsuba"
+    },
+    {
+      "label": "中野五月 · 五等分的新娘",
+      "aliases": [
+        "中野五月"
+      ],
+      "booru": "nakano_itsuki",
+      "zerochan": "Nakano Itsuki"
+    },
+    {
+      "label": "后藤一里 · 孤独摇滚",
+      "aliases": [
+        "后藤一里",
+        "後藤一里",
+        "波奇",
+        "波奇酱"
+      ],
+      "booru": "gotoh_hitori",
+      "zerochan": "Gotou Hitori"
+    },
+    {
+      "label": "伊地知虹夏 · 孤独摇滚",
+      "aliases": [
+        "伊地知虹夏",
+        "虹夏"
+      ],
+      "booru": "ijichi_nijika",
+      "zerochan": "Ijichi Nijika"
+    },
+    {
+      "label": "山田凉 · 孤独摇滚",
+      "aliases": [
+        "山田凉",
+        "山田涼"
+      ],
+      "booru": "yamada_ryou",
+      "zerochan": "Yamada Ryou"
+    },
+    {
+      "label": "喜多郁代 · 孤独摇滚",
+      "aliases": [
+        "喜多郁代",
+        "喜多"
+      ],
+      "booru": "kita_ikuyo",
+      "zerochan": "Kita Ikuyo"
+    },
+    {
+      "label": "灶门祢豆子 · 鬼灭之刃",
+      "aliases": [
+        "灶门祢豆子",
+        "竈門禰豆子",
+        "祢豆子",
+        "禰豆子"
+      ],
+      "booru": "kamado_nezuko",
+      "zerochan": "Kamado Nezuko"
+    },
+    {
+      "label": "灶门炭治郎 · 鬼灭之刃",
+      "aliases": [
+        "灶门炭治郎",
+        "竈門炭治郎",
+        "炭治郎"
+      ],
+      "booru": "kamado_tanjirou",
+      "zerochan": "Kamado Tanjirou"
+    },
+    {
+      "label": "胡蝶忍 · 鬼灭之刃",
+      "aliases": [
+        "胡蝶忍",
+        "蝴蝶忍"
+      ],
+      "booru": "kochou_shinobu",
+      "zerochan": "Kochou Shinobu"
+    },
+    {
+      "label": "阿尼亚 · 间谍过家家",
+      "aliases": [
+        "阿尼亚",
+        "阿妮亚",
+        "安妮亚",
+        "安妮亞"
+      ],
+      "booru": "anya_(spy_x_family)",
+      "zerochan": "Anya Forger"
+    },
+    {
+      "label": "约尔 · 间谍过家家",
+      "aliases": [
+        "约尔",
+        "約爾",
+        "约尔福杰"
+      ],
+      "booru": "yor_briar",
+      "zerochan": "Yor Briar"
+    },
+    {
+      "label": "四宫辉夜 · 辉夜大小姐想让我告白",
+      "aliases": [
+        "四宫辉夜",
+        "四宮輝夜"
+      ],
+      "booru": "shinomiya_kaguya",
+      "zerochan": "Shinomiya Kaguya"
+    },
+    {
+      "label": "藤原千花 · 辉夜大小姐想让我告白",
+      "aliases": [
+        "藤原千花",
+        "千花"
+      ],
+      "booru": "fujiwara_chika",
+      "zerochan": "Fujiwara Chika"
+    },
+    {
+      "label": "樱岛麻衣 · 青春猪头少年系列",
+      "aliases": [
+        "樱岛麻衣",
+        "櫻島麻衣",
+        "麻衣学姐"
+      ],
+      "booru": "sakurajima_mai",
+      "zerochan": "Sakurajima Mai"
+    },
+    {
+      "label": "绫波丽 · 新世纪福音战士",
+      "aliases": [
+        "绫波丽",
+        "綾波麗"
+      ],
+      "booru": "ayanami_rei",
+      "zerochan": "Ayanami Rei"
+    },
+    {
+      "label": "明日香 · 新世纪福音战士",
+      "aliases": [
+        "明日香",
+        "惣流明日香"
+      ],
+      "booru": "souryuu_asuka_langley",
+      "zerochan": "Souryuu Asuka Langley"
+    },
+    {
+      "label": "镜音铃 · VOCALOID",
+      "aliases": [
+        "镜音铃",
+        "鏡音鈴"
+      ],
+      "booru": "kagamine_rin",
+      "zerochan": "Kagamine Rin"
+    },
+    {
+      "label": "镜音连 · VOCALOID",
+      "aliases": [
+        "镜音连",
+        "鏡音連"
+      ],
+      "booru": "kagamine_len",
+      "zerochan": "Kagamine Len"
+    },
+    {
+      "label": "巡音流歌 · VOCALOID",
+      "aliases": [
+        "巡音流歌",
+        "巡音"
+      ],
+      "booru": "megurine_luka",
+      "zerochan": "Megurine Luka"
+    }
+  ]
+}

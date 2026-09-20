@@ -38,6 +38,134 @@ const String _fixtureHtml = '''
 ''';
 
 void main() {
+  test(
+    'Zerochan retries without qualifier and with reversed name, then caches',
+    () async {
+      final queries = <String>[];
+      final service = SourceParseService(
+        client: MockClient((request) async {
+          final query = request.url.queryParameters['q']!;
+          queries.add(query);
+          return http.Response(
+            query == 'Miku Hatsune' ? 'Hatsune Miku|Character|VOCALOID' : '',
+            200,
+          );
+        }),
+      );
+      expect(
+        await service.zerochanCandidates(
+          _testConfig,
+          'hatsune_miku_(vocaloid)',
+        ),
+        isEmpty,
+      );
+      queries.clear();
+      expect(
+        await service.zerochanCandidates(
+          _testConfig,
+          'Hatsune_Miku_(VOCALOID)',
+        ),
+        ['Hatsune Miku'],
+      );
+      expect(queries, [
+        'Hatsune Miku (VOCALOID)',
+        'Hatsune Miku',
+        'Miku Hatsune',
+      ]);
+      await service.zerochanCandidates(_testConfig, 'Hatsune_Miku_(VOCALOID)');
+      expect(queries, hasLength(3));
+      expect(SourceParseService.zerochanSearchKeyword('rem_(re:zero)'), 'rem');
+      expect(
+        SourceParseService.zerochanSearchKeyword('long_character_name'),
+        'long character name',
+      );
+      service.close();
+    },
+  );
+  test(
+    'Zerochan autocomplete parses official names and caches successful lookups',
+    () async {
+      var calls = 0;
+      final service = SourceParseService(
+        client: MockClient((request) async {
+          calls++;
+          expect(request.url.path, '/suggest');
+          expect(request.url.queryParameters['q'], 'hatsune miku');
+          return http.Response(
+            'Hatsune Miku|Character|VOCALOID\nHatsune Miku|Character|VOCALOID\n<html>error</html>',
+            200,
+          );
+        }),
+      );
+      expect(await service.zerochanCandidates(_testConfig, 'hatsune_miku'), [
+        'Hatsune Miku',
+      ]);
+      expect(await service.zerochanCandidates(_testConfig, 'hatsune_miku'), [
+        'Hatsune Miku',
+      ]);
+      expect(calls, 1);
+      service.close();
+    },
+  );
+  for (final target in ['https://other.test/path', '/original?json&p=1&l=2']) {
+    test('Zerochan rejects unsafe or looping redirect: $target', () async {
+      var calls = 0;
+      final service = SourceParseService(
+        client: MockClient((request) async {
+          calls++;
+          return http.Response('', 301, headers: {'location': target});
+        }),
+      );
+      final config = SourceConfig.fromJson({
+        ..._testConfig.toJson(),
+        'baseUrl': 'https://www.zerochan.net',
+        'sourceType': 'json',
+        'jsonFormat': 'zerochan',
+        'searchUrlTemplate': '/{keyword}?json&p={page}&l=2',
+      });
+      final result = await service.search(config, keyword: 'original');
+      expect(result.isSuccess, isFalse);
+      expect(result.errorMessage, contains('图源地址异常'));
+      expect(calls, lessThanOrEqualTo(2));
+      service.close();
+    });
+  }
+  test('Zerochan redirect preserves API query, page and user agent', () async {
+    final requests = <http.Request>[];
+    final service = SourceParseService(
+      client: MockClient((request) async {
+        requests.add(request);
+        expect(request.followRedirects, isFalse);
+        expect(request.headers['User-Agent'], isNotEmpty);
+        if (requests.length == 1) {
+          return http.Response(
+            '',
+            301,
+            headers: {'location': '/Cherry+Blossom'},
+          );
+        }
+        expect(request.url.queryParameters['json'], '');
+        expect(request.url.queryParameters['p'], '2');
+        expect(request.url.path, '/Cherry+Blossom');
+        return http.Response('{"items":[{"id":1,"tag":"Miku"}]}', 200);
+      }),
+    );
+    final config = SourceConfig.fromJson({
+      ..._testConfig.toJson(),
+      'baseUrl': 'https://www.zerochan.net',
+      'sourceType': 'json',
+      'jsonFormat': 'zerochan',
+      'searchUrlTemplate': '/{keyword}?json&p={page}&l=2',
+    });
+    final result = await service.search(
+      config,
+      keyword: 'Cherry Blossoms',
+      page: 2,
+    );
+    expect(result.items, hasLength(1));
+    expect(requests, hasLength(2));
+    service.close();
+  });
   group('buildSearchUri', () {
     final SourceParseService service = SourceParseService();
 
@@ -215,8 +343,10 @@ void main() {
       final result = await service.search(moebooruConfig, keyword: 'x');
 
       expect(result.isSuccess, isTrue);
-      expect(result.items.single.imageUrl,
-          'https://example.test/image/original/a1.jpg');
+      expect(
+        result.items.single.imageUrl,
+        'https://example.test/image/original/a1.jpg',
+      );
       expect(result.items.single.tags, <String>['blue_sky', 'cloud']);
     });
   });
@@ -253,21 +383,20 @@ void main() {
   group('regex 容错', () {
     // 含 RegExp 的配置无法 const 构造，故用工厂函数。
     SourceConfig configWithTags() => SourceConfig(
-          id: 'tolerant',
-          name: 'tolerant',
-          baseUrl: 'https://example.test',
-          searchUrlTemplate: '/post?tags={keyword}',
-          extractRule: ExtractRule(
-            listSelector: 'ul#post-list-posts > li',
-            imageUrl:
-                const FieldRule(selector: 'a.directlink', attribute: 'href'),
-            tags: FieldRule(
-              selector: 'a.thumb img.preview',
-              attribute: 'title',
-              regex: RegExp(r'Tags:\s*(.*?)(?:\s*User:.*)?$'),
-            ),
-          ),
-        );
+      id: 'tolerant',
+      name: 'tolerant',
+      baseUrl: 'https://example.test',
+      searchUrlTemplate: '/post?tags={keyword}',
+      extractRule: ExtractRule(
+        listSelector: 'ul#post-list-posts > li',
+        imageUrl: const FieldRule(selector: 'a.directlink', attribute: 'href'),
+        tags: FieldRule(
+          selector: 'a.thumb img.preview',
+          attribute: 'title',
+          regex: RegExp(r'Tags:\s*(.*?)(?:\s*User:.*)?$'),
+        ),
+      ),
+    );
 
     test('title 为空 → tags 为空数组，不崩溃', () async {
       final SourceParseService service = SourceParseService(
@@ -385,10 +514,7 @@ void main() {
       baseUrl: 'https://example.test',
       searchUrlTemplate: '/post.json?tags={keyword}&page={page}',
       sourceType: SourceType.json,
-      extractRule: const ExtractRule(
-        listSelector: 'li',
-        imageUrl: FieldRule(),
-      ),
+      extractRule: const ExtractRule(listSelector: 'li', imageUrl: FieldRule()),
     );
 
     test('百度聚合图源字段映射（hoverUrl→原图、thumbnailUrl→缩略图）', () async {
@@ -410,10 +536,7 @@ void main() {
           'file_url': 'hoverUrl',
           'preview_url': 'thumbnailUrl',
         },
-        extractRule: ExtractRule(
-          listSelector: 'li',
-          imageUrl: FieldRule(),
-        ),
+        extractRule: ExtractRule(listSelector: 'li', imageUrl: FieldRule()),
       );
       final SourceParseService service = SourceParseService(
         client: MockClient(
@@ -425,7 +548,10 @@ void main() {
       final result = await service.search(baiduConfig, keyword: '初音');
 
       expect(result.isSuccess, isTrue);
-      expect(result.items.single.imageUrl, 'https://img.baidu.com/original.jpg');
+      expect(
+        result.items.single.imageUrl,
+        'https://img.baidu.com/original.jpg',
+      );
       expect(
         result.items.single.thumbnailUrl,
         'https://img.baidu.com/thumb.jpg',
@@ -456,8 +582,10 @@ void main() {
 
       expect(result.isSuccess, isTrue);
       expect(result.items.single.tags, <String>['sky', 'cloud']);
-      expect(result.items.single.sourcePage,
-          'https://example.test/post/show/1');
+      expect(
+        result.items.single.sourcePage,
+        'https://example.test/post/show/1',
+      );
     });
 
     test('JSON 空结果复用 noImagesMessage（空态/没有更多）', () async {
@@ -495,7 +623,8 @@ const Map<String, String> _utf8Headers = <String, String>{
 };
 
 /// 生成单 post 的 Moebooru 结构 fixture，title 可注入。
-String _tagsFixture(String title) => '''
+String _tagsFixture(String title) =>
+    '''
 <div id="post-list">
   <ul id="post-list-posts">
     <li id="p1">

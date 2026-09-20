@@ -1,0 +1,493 @@
+{
+  "platform": "windows",
+  "network": "direct_no_proxy",
+  "source": "tbib",
+  "rows": [
+    {
+      "label": "蕾姆 · Re:从零开始的异世界生活",
+      "keyword": "rem_(re:zero)",
+      "timeUtc": "2026-09-19T12:47:31.303294Z",
+      "url": "https://tbib.org/index.php?page=dapi&s=post&q=index&json=1&tags=rem_(re%3Azero)%20rating%3Asafe&limit=2&pid=0",
+      "result": "request_or_parse_error",
+      "error": "HandshakeException: Connection terminated during handshake"
+    },
+    {
+      "label": "拉姆 · Re:从零开始的异世界生活",
+      "keyword": "ram_(re:zero)",
+      "timeUtc": "2026-09-19T12:47:32.391419Z",
+      "url": "https://tbib.org/index.php?page=dapi&s=post&q=index&json=1&tags=ram_(re%3Azero)%20rating%3Asafe&limit=2&pid=0",
+      "result": "request_or_parse_error",
+      "error": "HandshakeException: Connection terminated during handshake"
+    },
+    {
+      "label": "初音未来 · VOCALOID",
+      "keyword": "hatsune_miku",
+      "timeUtc": "2026-09-19T12:47:33.266906Z",
+      "url": "https://tbib.org/index.php?page=dapi&s=post&q=index&json=1&tags=hatsune_miku%20rating%3Asafe&limit=2&pid=0",
+      "result": "request_or_parse_error",
+      "error": "HandshakeException: Connection terminated during handshake"
+    },
+    {
+      "label": "桐崎千棘 · 伪恋",
+      "keyword": "kirisaki_chitoge",
+      "timeUtc": "2026-09-19T12:47:34.140102Z",
+      "result": "skipped_after_three_failures"
+    },
+    {
+      "label": "伪恋 · 作品",
+      "keyword": "nisekoi",
+      "timeUtc": "2026-09-19T12:47:34.140102Z",
+      "result": "skipped_after_three_failures"
+    },
+    {
+      "label": "火影忍者 · 作品",
+      "keyword": "naruto",
+      "timeUtc": "2026-09-19T12:47:34.140102Z",
+      "result": "skipped_after_three_failures"
+    },
+    {
+      "label": "风景 · 标签",
+      "keyword": "scenery",
+      "timeUtc": "2026-09-19T12:47:34.140102Z",
+      "result": "skipped_after_three_failures"
+    },
+    {
+      "label": "天空",
+      "keyword": "sky",
+      "timeUtc": "2026-09-19T12:47:34.140102Z",
+      "result": "skipped_after_three_failures"
+    },
+    {
+      "label": "蓝天",
+      "keyword": "blue_sky",
+      "timeUtc": "2026-09-19T12:47:34.140102Z",
+      "result": "skipped_after_three_failures"
+    },
+    {
+      "label": "云朵",
+      "keyword": "cloud",
+      "timeUtc": "2026-09-19T12:47:34.140102Z",
+      "result": "skipped_after_three_failures"
+    },
+    {
+      "label": "星空",
+      "keyword": "starry_sky",
+      "timeUtc": "2026-09-19T12:47:34.140102Z",
+      "result": "skipped_after_three_failures"
+    },
+    {
+      "label": "夜晚",
+      "keyword": "night",
+      "timeUtc": "2026-09-19T12:47:34.140102Z",
+      "result": "skipped_after_three_failures"
+    },
+    {
+      "label": "日落",
+      "keyword": "sunset",
+      "timeUtc": "2026-09-19T12:47:34.140102Z",
+      "result": "skipped_after_three_failures"
+    },
+    {
+      "label": "海边",
+      "keyword": "beach",
+      "timeUtc": "2026-09-19T12:47:34.140102Z",
+      "result": "skipped_after_three_failures"
+    },
+    {
+      "label": "海洋",
+      "keyword": "ocean",
+      "timeUtc": "2026-09-19T12:47:34.140102Z",
+      "result": "skipped_after_three_failures"
+    },
+    {
+      "label": "雨",
+      "keyword": "rain",
+      "timeUtc": "2026-09-19T12:47:34.140102Z",
+      "result": "skipped_after_three_failures"
+    },
+    {
+      "label": "雪",
+      "keyword": "snow",
+      "timeUtc": "2026-09-19T12:47:34.140102Z",
+      "result": "skipped_after_three_failures"
+    },
+    {
+      "label": "花朵",
+      "keyword": "flower",
+      "timeUtc": "2026-09-19T12:47:34.140102Z",
+      "result": "skipped_after_three_failures"
+    },
+    {
+      "label": "樱花",
+      "keyword": "cherry_blossoms",
+      "timeUtc": "2026-09-19T12:47:34.140102Z",
+      "result": "skipped_after_three_failures"
+    },
+    {
+      "label": "森林",
+      "keyword": "forest",
+      "timeUtc": "2026-09-19T12:47:34.140102Z",
+      "result": "skipped_after_three_failures"
+    },
+    {
+      "label": "月亮",
+      "keyword": "moon",
+      "timeUtc": "2026-09-19T12:47:34.140102Z",
+      "result": "skipped_after_three_failures"
+    },
+    {
+      "label": "城市",
+      "keyword": "city",
+      "timeUtc": "2026-09-19T12:47:34.140102Z",
+      "result": "skipped_after_three_failures"
+    },
+    {
+      "label": "女孩",
+      "keyword": "1girl",
+      "timeUtc": "2026-09-19T12:47:34.140102Z",
+      "result": "skipped_after_three_failures"
+    },
+    {
+      "label": "男孩",
+      "keyword": "1boy",
+      "timeUtc": "2026-09-19T12:47:34.140102Z",
+      "result": "skipped_after_three_failures"
+    },
+    {
+      "label": "微笑",
+      "keyword": "smile",
+      "timeUtc": "2026-09-19T12:47:34.140102Z",
+      "result": "skipped_after_three_failures"
+    },
+    {
+      "label": "长发",
+      "keyword": "long_hair",
+      "timeUtc": "2026-09-19T12:47:34.140102Z",
+      "result": "skipped_after_three_failures"
+    },
+    {
+      "label": "短发",
+      "keyword": "short_hair",
+      "timeUtc": "2026-09-19T12:47:34.140102Z",
+      "result": "skipped_after_three_failures"
+    },
+    {
+      "label": "金发",
+      "keyword": "blonde_hair",
+      "timeUtc": "2026-09-19T12:47:34.140102Z",
+      "result": "skipped_after_three_failures"
+    },
+    {
+      "label": "白发",
+      "keyword": "white_hair",
+      "timeUtc": "2026-09-19T12:47:34.140102Z",
+      "result": "skipped_after_three_failures"
+    },
+    {
+      "label": "黑发",
+      "keyword": "black_hair",
+      "timeUtc": "2026-09-19T12:47:34.140102Z",
+      "result": "skipped_after_three_failures"
+    },
+    {
+      "label": "蓝眼睛",
+      "keyword": "blue_eyes",
+      "timeUtc": "2026-09-19T12:47:34.140102Z",
+      "result": "skipped_after_three_failures"
+    },
+    {
+      "label": "红眼睛",
+      "keyword": "red_eyes",
+      "timeUtc": "2026-09-19T12:47:34.140102Z",
+      "result": "skipped_after_three_failures"
+    },
+    {
+      "label": "双马尾",
+      "keyword": "twintails",
+      "timeUtc": "2026-09-19T12:47:34.140102Z",
+      "result": "skipped_after_three_failures"
+    },
+    {
+      "label": "猫耳",
+      "keyword": "cat_ears",
+      "timeUtc": "2026-09-19T12:47:34.140102Z",
+      "result": "skipped_after_three_failures"
+    },
+    {
+      "label": "眼镜",
+      "keyword": "glasses",
+      "timeUtc": "2026-09-19T12:47:34.140102Z",
+      "result": "skipped_after_three_failures"
+    },
+    {
+      "label": "帽子",
+      "keyword": "hat",
+      "timeUtc": "2026-09-19T12:47:34.140102Z",
+      "result": "skipped_after_three_failures"
+    },
+    {
+      "label": "围巾",
+      "keyword": "scarf",
+      "timeUtc": "2026-09-19T12:47:34.140102Z",
+      "result": "skipped_after_three_failures"
+    },
+    {
+      "label": "和服",
+      "keyword": "kimono",
+      "timeUtc": "2026-09-19T12:47:34.140102Z",
+      "result": "skipped_after_three_failures"
+    },
+    {
+      "label": "女仆",
+      "keyword": "maid",
+      "timeUtc": "2026-09-19T12:47:34.140102Z",
+      "result": "skipped_after_three_failures"
+    },
+    {
+      "label": "校服",
+      "keyword": "school_uniform",
+      "timeUtc": "2026-09-19T12:47:34.140102Z",
+      "result": "skipped_after_three_failures"
+    },
+    {
+      "label": "连衣裙",
+      "keyword": "dress",
+      "timeUtc": "2026-09-19T12:47:34.140102Z",
+      "result": "skipped_after_three_failures"
+    },
+    {
+      "label": "蝴蝶结",
+      "keyword": "bow",
+      "timeUtc": "2026-09-19T12:47:34.140102Z",
+      "result": "skipped_after_three_failures"
+    },
+    {
+      "label": "御坂美琴 · 某科学的超电磁炮",
+      "keyword": "misaka_mikoto",
+      "timeUtc": "2026-09-19T12:47:34.140102Z",
+      "result": "skipped_after_three_failures"
+    },
+    {
+      "label": "白井黑子 · 某科学的超电磁炮",
+      "keyword": "shirai_kuroko",
+      "timeUtc": "2026-09-19T12:47:34.140102Z",
+      "result": "skipped_after_three_failures"
+    },
+    {
+      "label": "时崎狂三 · 约会大作战",
+      "keyword": "tokisaki_kurumi",
+      "timeUtc": "2026-09-19T12:47:34.140102Z",
+      "result": "skipped_after_three_failures"
+    },
+    {
+      "label": "五河琴里 · 约会大作战",
+      "keyword": "itsuka_kotori",
+      "timeUtc": "2026-09-19T12:47:34.140102Z",
+      "result": "skipped_after_three_failures"
+    },
+    {
+      "label": "结城明日奈 · 刀剑神域",
+      "keyword": "asuna_(sao)",
+      "timeUtc": "2026-09-19T12:47:34.140102Z",
+      "result": "skipped_after_three_failures"
+    },
+    {
+      "label": "桐人 · 刀剑神域",
+      "keyword": "kirito",
+      "timeUtc": "2026-09-19T12:47:34.140102Z",
+      "result": "skipped_after_three_failures"
+    },
+    {
+      "label": "爱蜜莉雅 · Re:从零开始的异世界生活",
+      "keyword": "emilia_(re:zero)",
+      "timeUtc": "2026-09-19T12:47:34.140102Z",
+      "result": "skipped_after_three_failures"
+    },
+    {
+      "label": "小野寺小咲 · 伪恋",
+      "keyword": "onodera_kosaki",
+      "timeUtc": "2026-09-19T12:47:34.140102Z",
+      "result": "skipped_after_three_failures"
+    },
+    {
+      "label": "橘万里花 · 伪恋",
+      "keyword": "tachibana_marika",
+      "timeUtc": "2026-09-19T12:47:34.140102Z",
+      "result": "skipped_after_three_failures"
+    },
+    {
+      "label": "漩涡鸣人 · 火影忍者",
+      "keyword": "uzumaki_naruto",
+      "timeUtc": "2026-09-19T12:47:34.140102Z",
+      "result": "skipped_after_three_failures"
+    },
+    {
+      "label": "宇智波佐助 · 火影忍者",
+      "keyword": "uchiha_sasuke",
+      "timeUtc": "2026-09-19T12:47:34.140102Z",
+      "result": "skipped_after_three_failures"
+    },
+    {
+      "label": "春野樱 · 火影忍者",
+      "keyword": "haruno_sakura",
+      "timeUtc": "2026-09-19T12:47:34.140102Z",
+      "result": "skipped_after_three_failures"
+    },
+    {
+      "label": "日向雏田 · 火影忍者",
+      "keyword": "hyuuga_hinata",
+      "timeUtc": "2026-09-19T12:47:34.140102Z",
+      "result": "skipped_after_three_failures"
+    },
+    {
+      "label": "旗木卡卡西 · 火影忍者",
+      "keyword": "hatake_kakashi",
+      "timeUtc": "2026-09-19T12:47:34.140102Z",
+      "result": "skipped_after_three_failures"
+    },
+    {
+      "label": "宇智波鼬 · 火影忍者",
+      "keyword": "uchiha_itachi",
+      "timeUtc": "2026-09-19T12:47:34.140102Z",
+      "result": "skipped_after_three_failures"
+    },
+    {
+      "label": "木之本樱 · 魔卡少女樱",
+      "keyword": "kinomoto_sakura",
+      "timeUtc": "2026-09-19T12:47:34.140102Z",
+      "result": "skipped_after_three_failures"
+    },
+    {
+      "label": "中野一花 · 五等分的新娘",
+      "keyword": "nakano_ichika",
+      "timeUtc": "2026-09-19T12:47:34.140102Z",
+      "result": "skipped_after_three_failures"
+    },
+    {
+      "label": "中野二乃 · 五等分的新娘",
+      "keyword": "nakano_nino",
+      "timeUtc": "2026-09-19T12:47:34.140102Z",
+      "result": "skipped_after_three_failures"
+    },
+    {
+      "label": "中野三玖 · 五等分的新娘",
+      "keyword": "nakano_miku",
+      "timeUtc": "2026-09-19T12:47:34.140102Z",
+      "result": "skipped_after_three_failures"
+    },
+    {
+      "label": "中野四叶 · 五等分的新娘",
+      "keyword": "nakano_yotsuba",
+      "timeUtc": "2026-09-19T12:47:34.140102Z",
+      "result": "skipped_after_three_failures"
+    },
+    {
+      "label": "中野五月 · 五等分的新娘",
+      "keyword": "nakano_itsuki",
+      "timeUtc": "2026-09-19T12:47:34.140102Z",
+      "result": "skipped_after_three_failures"
+    },
+    {
+      "label": "后藤一里 · 孤独摇滚",
+      "keyword": "gotoh_hitori",
+      "timeUtc": "2026-09-19T12:47:34.140102Z",
+      "result": "skipped_after_three_failures"
+    },
+    {
+      "label": "伊地知虹夏 · 孤独摇滚",
+      "keyword": "ijichi_nijika",
+      "timeUtc": "2026-09-19T12:47:34.140102Z",
+      "result": "skipped_after_three_failures"
+    },
+    {
+      "label": "山田凉 · 孤独摇滚",
+      "keyword": "yamada_ryou",
+      "timeUtc": "2026-09-19T12:47:34.140102Z",
+      "result": "skipped_after_three_failures"
+    },
+    {
+      "label": "喜多郁代 · 孤独摇滚",
+      "keyword": "kita_ikuyo",
+      "timeUtc": "2026-09-19T12:47:34.140102Z",
+      "result": "skipped_after_three_failures"
+    },
+    {
+      "label": "灶门祢豆子 · 鬼灭之刃",
+      "keyword": "kamado_nezuko",
+      "timeUtc": "2026-09-19T12:47:34.140102Z",
+      "result": "skipped_after_three_failures"
+    },
+    {
+      "label": "灶门炭治郎 · 鬼灭之刃",
+      "keyword": "kamado_tanjirou",
+      "timeUtc": "2026-09-19T12:47:34.140102Z",
+      "result": "skipped_after_three_failures"
+    },
+    {
+      "label": "胡蝶忍 · 鬼灭之刃",
+      "keyword": "kochou_shinobu",
+      "timeUtc": "2026-09-19T12:47:34.141010Z",
+      "result": "skipped_after_three_failures"
+    },
+    {
+      "label": "阿尼亚 · 间谍过家家",
+      "keyword": "anya_(spy_x_family)",
+      "timeUtc": "2026-09-19T12:47:34.141010Z",
+      "result": "skipped_after_three_failures"
+    },
+    {
+      "label": "约尔 · 间谍过家家",
+      "keyword": "yor_briar",
+      "timeUtc": "2026-09-19T12:47:34.141010Z",
+      "result": "skipped_after_three_failures"
+    },
+    {
+      "label": "四宫辉夜 · 辉夜大小姐想让我告白",
+      "keyword": "shinomiya_kaguya",
+      "timeUtc": "2026-09-19T12:47:34.141010Z",
+      "result": "skipped_after_three_failures"
+    },
+    {
+      "label": "藤原千花 · 辉夜大小姐想让我告白",
+      "keyword": "fujiwara_chika",
+      "timeUtc": "2026-09-19T12:47:34.141010Z",
+      "result": "skipped_after_three_failures"
+    },
+    {
+      "label": "樱岛麻衣 · 青春猪头少年系列",
+      "keyword": "sakurajima_mai",
+      "timeUtc": "2026-09-19T12:47:34.141010Z",
+      "result": "skipped_after_three_failures"
+    },
+    {
+      "label": "绫波丽 · 新世纪福音战士",
+      "keyword": "ayanami_rei",
+      "timeUtc": "2026-09-19T12:47:34.141010Z",
+      "result": "skipped_after_three_failures"
+    },
+    {
+      "label": "明日香 · 新世纪福音战士",
+      "keyword": "souryuu_asuka_langley",
+      "timeUtc": "2026-09-19T12:47:34.141010Z",
+      "result": "skipped_after_three_failures"
+    },
+    {
+      "label": "镜音铃 · VOCALOID",
+      "keyword": "kagamine_rin",
+      "timeUtc": "2026-09-19T12:47:34.141010Z",
+      "result": "skipped_after_three_failures"
+    },
+    {
+      "label": "镜音连 · VOCALOID",
+      "keyword": "kagamine_len",
+      "timeUtc": "2026-09-19T12:47:34.141010Z",
+      "result": "skipped_after_three_failures"
+    },
+    {
+      "label": "巡音流歌 · VOCALOID",
+      "keyword": "megurine_luka",
+      "timeUtc": "2026-09-19T12:47:34.141010Z",
+      "result": "skipped_after_three_failures"
+    }
+  ]
+}

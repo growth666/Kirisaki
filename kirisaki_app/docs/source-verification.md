@@ -1,5 +1,13 @@
 # Search sources: module two
 
+## Catalog update — 2026-09-19
+
+TBIB was removed from the built-in search catalog at the user's request after
+connection failures and image-quality feedback. The current search catalog is
+Safebooru, Danbooru (Safe), and Zerochan; recommendation is unchanged. Existing
+favorites, history and custom sources are retained. TBIB results below are
+historical verification records, not a description of the current catalog.
+
 ## Zerochan disambiguation fix — 2026-09-18
 
 Windows, direct connection without proxy: `/rem?json&p=1&l=24` returned `{}`;

@@ -7,12 +7,14 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/profile/search_history_service.dart';
 import '../../../../core/settings/settings_service.dart';
 import '../../../../core/source/builtin_sources.dart';
+import '../../../../core/source/chinese_search_dictionary.dart';
 import '../../../../core/source/image_item.dart';
 import '../../../../core/source/source_config.dart';
 import '../../../../core/source/source_parse_result.dart';
 import '../../../../core/source/source_parse_service.dart';
 import '../../../../core/source/source_service.dart';
 import '../widgets/thumbnail_image.dart';
+import '../widgets/chinese_search_suggestions.dart';
 
 /// 搜索页：关键词搜索 + 瀑布流图片列表 + 上拉分页。
 class SearchPage extends StatefulWidget {
@@ -54,6 +56,7 @@ class _SearchPageState extends State<SearchPage>
   String? _sourceError;
   bool _sourcesReady = false;
   bool _openingPreview = false;
+  bool _choosingKeyword = false;
   SourceConfig? _selectedSource;
 
   final List<ImageItem> _items = <ImageItem>[];
@@ -227,12 +230,12 @@ class _SearchPageState extends State<SearchPage>
     _searchFocusNode.unfocus();
     if (!_sourcesReady) return;
     // 请求锁：加载中直接返回，防止连点搜索按钮重复发起请求。
-    if (_loading) {
+    if (_loading || _choosingKeyword) {
       return;
     }
     final SourceConfig? source = _selectedSource;
     // 关键词自动 trim；空关键词不发起任何请求，仅提示。
-    final String keyword = _searchController.text.trim();
+    String keyword = _searchController.text.trim();
     if (source == null) {
       _showSnackBar('请先选择图源');
       return;
@@ -240,6 +243,136 @@ class _SearchPageState extends State<SearchPage>
     if (keyword.isEmpty) {
       _showSnackBar('请输入搜索关键词');
       return;
+    }
+    if (ChineseSearchDictionary.containsChinese(keyword)) {
+      final before = _requestGeneration;
+      final original = keyword;
+      _choosingKeyword = true;
+      List<ChineseSearchEntry> candidates;
+      try {
+        candidates = await ChineseSearchDictionary.lookup(keyword, source.id);
+      } catch (_) {
+        _choosingKeyword = false;
+        if (mounted) _showSnackBar('中文词库加载失败，请重试或使用英文标签');
+        return;
+      }
+      if (!mounted || before != _requestGeneration) {
+        _choosingKeyword = false;
+        return;
+      }
+      final chosen = await showDialog<String>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('中文搜索辅助'),
+          content: SizedBox(
+            width: 360,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    candidates.isEmpty
+                        ? '当前图源暂无这个词的中文映射。可修改为英文标签，或尝试原词搜索。'
+                        : '请选择要搜索的条目，将使用 ${source.name} 对应标签：',
+                  ),
+                  for (final entry in candidates)
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(entry.label),
+                      subtitle: Text(entry.keywordFor(source.id)!),
+                      onTap: () => Navigator.pop(
+                        dialogContext,
+                        entry.keywordFor(source.id),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('返回修改'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, original),
+              child: const Text('直接搜索原词'),
+            ),
+          ],
+        ),
+      );
+      _choosingKeyword = false;
+      if (!mounted ||
+          chosen == null ||
+          before != _requestGeneration ||
+          _selectedSource?.id != source.id) {
+        return;
+      }
+      keyword = chosen;
+      _searchController.text = keyword;
+    }
+    if (source.id == 'zerochan') {
+      final before = _requestGeneration;
+      _choosingKeyword = true;
+      try {
+        final entries = await ChineseSearchDictionary.load();
+        final needsLookup = entries.any(
+          (entry) => entry.booru == keyword && entry.zerochan == null,
+        );
+        if (!mounted || before != _requestGeneration) return;
+        if (needsLookup) {
+          _showSnackBar('正在查询 Zerochan 对应标签…');
+          final tags = await _service.zerochanCandidates(source, keyword);
+          if (!mounted || before != _requestGeneration) return;
+          if (tags.isEmpty) {
+            keyword = SourceParseService.zerochanSearchKeyword(keyword);
+            _searchController.text = keyword;
+            _showSnackBar('未找到标签提示，继续尝试搜索：$keyword');
+          } else {
+            final selected = await showDialog<String>(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: const Text('选择 Zerochan 标签'),
+                content: SizedBox(
+                  width: 360,
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text('以下为站点候选，可能包含相关人物或作品，请确认：'),
+                        for (final tag in tags)
+                          ListTile(
+                            title: Text(tag),
+                            onTap: () => Navigator.pop(context, tag),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('取消'),
+                  ),
+                ],
+              ),
+            );
+            if (!mounted || selected == null || before != _requestGeneration) {
+              return;
+            }
+            keyword = selected;
+            _searchController.text = keyword;
+          }
+        }
+      } catch (_) {
+        if (!mounted || before != _requestGeneration) return;
+        keyword = SourceParseService.zerochanSearchKeyword(keyword);
+        _searchController.text = keyword;
+        _showSnackBar('标签提示暂不可用，继续尝试搜索：$keyword');
+      } finally {
+        _choosingKeyword = false;
+      }
     }
     final generation = ++_requestGeneration;
     setState(() {
@@ -494,7 +627,26 @@ class _SearchPageState extends State<SearchPage>
           ),
         ],
       ),
-      child: Column(children: [_buildSearchBar(), _buildCategoryBar()]),
+      child: Column(
+        children: [
+          _buildSearchBar(),
+          ChineseSearchSuggestions(
+            controller: _searchController,
+            focusNode: _searchFocusNode,
+            sourceId: _selectedSource?.id,
+            onSelected: !_sourcesReady || _choosingKeyword
+                ? null
+                : (keyword) {
+                    // A deliberate candidate choice supersedes a slow recommendation
+                    // or previous search. Its late response must not overwrite this one.
+                    setState(_clearSearch);
+                    _searchController.text = keyword;
+                    _search();
+                  },
+          ),
+          _buildCategoryBar(),
+        ],
+      ),
     );
   }
 

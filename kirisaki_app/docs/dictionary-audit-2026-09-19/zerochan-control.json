@@ -1,0 +1,58 @@
+{
+  "platform": "windows",
+  "network": "direct_no_proxy",
+  "source": "zerochan",
+  "rows": [
+    {
+      "label": "Rem (Re:Zero)",
+      "keyword": "Rem (Re:Zero)",
+      "timeUtc": "2026-09-19T12:50:54.780005Z",
+      "url": "https://www.zerochan.net/Rem%20(Re%3AZero)?json&p=1&l=2",
+      "http": 200,
+      "result": "has_results",
+      "count": 2
+    },
+    {
+      "label": "Hyuga Hinata",
+      "keyword": "Hyuga Hinata",
+      "timeUtc": "2026-09-19T12:50:56.493459Z",
+      "url": "https://www.zerochan.net/Hyuga%20Hinata?json&p=1&l=2",
+      "http": 503,
+      "result": "http_error"
+    },
+    {
+      "label": "Scenery",
+      "keyword": "Scenery",
+      "timeUtc": "2026-09-19T12:50:57.840886Z",
+      "url": "https://www.zerochan.net/Scenery?json&p=1&l=2",
+      "http": 200,
+      "result": "has_results",
+      "count": 2
+    },
+    {
+      "label": "Yor Forger",
+      "keyword": "Yor Forger",
+      "timeUtc": "2026-09-19T12:50:58.900690Z",
+      "url": "https://www.zerochan.net/Yor%20Forger?json&p=1&l=2",
+      "http": 503,
+      "result": "http_error"
+    },
+    {
+      "label": "Cherry Blossoms",
+      "keyword": "Cherry Blossoms",
+      "timeUtc": "2026-09-19T12:51:00.245150Z",
+      "url": "https://www.zerochan.net/Cherry%20Blossoms?json&p=1&l=2",
+      "http": 503,
+      "result": "http_error"
+    },
+    {
+      "label": "control-repeat",
+      "keyword": "Rem (Re:Zero)",
+      "timeUtc": "2026-09-19T12:51:01.589649Z",
+      "url": "https://www.zerochan.net/Rem%20(Re%3AZero)?json&p=1&l=2",
+      "http": 200,
+      "result": "has_results",
+      "count": 2
+    }
+  ]
+}

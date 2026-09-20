@@ -1,0 +1,26 @@
+[
+  {
+    "case": "ipv4-a",
+    "exit": 35,
+    "response": "",
+    "error": "curl: (35) Recv failure: Connection was reset\n"
+  },
+  {
+    "case": "ipv4-b",
+    "exit": 35,
+    "response": "",
+    "error": "curl: (35) Recv failure: Connection was reset\n"
+  },
+  {
+    "case": "ipv6",
+    "exit": 6,
+    "response": "",
+    "error": "curl: (6) Could not resolve host: tbib.org\n"
+  },
+  {
+    "case": "tls12",
+    "exit": 35,
+    "response": "",
+    "error": "curl: (35) Recv failure: Connection was reset\n"
+  }
+]
