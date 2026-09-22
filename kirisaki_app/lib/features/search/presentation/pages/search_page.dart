@@ -708,7 +708,7 @@ class _SearchPageState extends State<SearchPage>
               label: Text(source.name),
               selected: !_recommendMode && _selectedSource?.id == source.id,
               onSelected: (_) {
-                // 仅同步下拉框选中图源，不自动搜索（保持原图源选择逻辑）。
+                // 切换图源，不自动提交搜索。
                 _selectSource(source);
               },
             ),
@@ -718,7 +718,7 @@ class _SearchPageState extends State<SearchPage>
     );
   }
 
-  /// 顶部搜索区：关键词输入框 + 图源下拉框 + 搜索按钮。
+  /// 顶部搜索区：关键词输入框 + 搜索按钮，图源统一由分类栏选择。
   Widget _buildSearchBar() {
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
@@ -739,27 +739,6 @@ class _SearchPageState extends State<SearchPage>
                 isDense: true,
               ),
             ),
-          ),
-          const SizedBox(width: 8),
-          DropdownMenu<SourceConfig>(
-            key: ValueKey(jsonEncode(_selectedSource?.toJson())),
-            enabled: _sourcesReady && _sources.isNotEmpty,
-            initialSelection: _selectedSource,
-            width: 140,
-            requestFocusOnTap: false,
-            label: const Text('图源'),
-            onSelected: (SourceConfig? value) {
-              if (value == null || value == _selectedSource) {
-                return;
-              }
-              _selectSource(value);
-            },
-            dropdownMenuEntries: _sources
-                .map(
-                  (SourceConfig s) =>
-                      DropdownMenuEntry<SourceConfig>(value: s, label: s.name),
-                )
-                .toList(),
           ),
           const SizedBox(width: 8),
           IconButton.filled(

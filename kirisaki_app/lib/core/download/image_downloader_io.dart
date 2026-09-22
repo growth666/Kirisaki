@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/services.dart';
@@ -65,10 +66,21 @@ class IoImageDownloadService implements ImageSaveService {
         return const ImageSaveResult.failure('无法获取系统下载目录');
       }
       await baseDir.create(recursive: true);
-      final String name = fileName ?? _fileNameFromUrl(imageUrl);
+      final String name = _safeFileName(
+        _matchContentType(
+          fileName ?? suggestedImageFileName(imageUrl),
+          response.headers['content-type'],
+        ),
+      );
       final File file = File(_uniquePath(baseDir, name));
       await file.writeAsBytes(response.bodyBytes, flush: true);
       return ImageSaveResult.success(message: '已保存到 ${file.path}');
+    } on TimeoutException {
+      return const ImageSaveResult.failure('下载失败：网络请求超时，请检查网络后重试');
+    } on SocketException {
+      return const ImageSaveResult.failure('下载失败：无法连接图源，请检查网络或代理设置');
+    } on FileSystemException catch (e) {
+      return ImageSaveResult.failure('保存失败：无法写入下载目录（${e.message}）');
     } catch (e) {
       return ImageSaveResult.failure('下载失败：$e');
     } finally {
@@ -102,7 +114,9 @@ class IoImageDownloadService implements ImageSaveService {
         'saveToDownloads',
         <String, Object?>{
           'bytes': response.bodyBytes,
-          'fileName': fileName ?? _fileNameFromUrl(imageUrl),
+          'fileName': _safeFileName(
+            fileName ?? suggestedImageFileName(imageUrl),
+          ),
           'treeUri': treeUri,
         },
       );
@@ -141,14 +155,23 @@ class IoImageDownloadService implements ImageSaveService {
   }
 
   /// 从图片 URL 末段提取文件名；无扩展名时使用通用兜底名。
-  static String _fileNameFromUrl(String url) {
-    final Uri uri = Uri.parse(url);
-    final String? last = uri.pathSegments.isNotEmpty
-        ? uri.pathSegments.last
-        : null;
-    if (last == null || last.isEmpty || !last.contains('.')) {
-      return 'image.jpg';
-    }
-    return last;
+
+  static String _safeFileName(String name) =>
+      name.replaceAll(RegExp(r'[\\/:*?"<>|]'), '_');
+
+  static String _matchContentType(String name, String? contentType) {
+    final type = contentType?.split(';').first.toLowerCase();
+    final ext = switch (type) {
+      'image/png' => '.png',
+      'image/webp' => '.webp',
+      'image/gif' => '.gif',
+      'image/avif' => '.avif',
+      'image/bmp' => '.bmp',
+      'image/jpeg' => '.jpg',
+      _ => null,
+    };
+    if (ext == null) return name;
+    final dot = name.lastIndexOf('.');
+    return dot > 0 ? '${name.substring(0, dot)}$ext' : '$name$ext';
   }
 }

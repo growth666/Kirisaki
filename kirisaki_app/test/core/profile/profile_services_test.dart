@@ -41,6 +41,21 @@ void main() {
   });
 
   group('DownloadService', () {
+    test('remove preserves other records and clear persists', () async {
+      final service = DownloadService();
+      const a = ImageItem(imageUrl: 'https://x/a.jpg');
+      const b = ImageItem(imageUrl: 'https://x/b.jpg');
+      await service.record(a);
+      await service.record(b);
+      await service.remove(a);
+      final restarted = DownloadService();
+      await restarted.load();
+      expect(restarted.items.single.imageUrl, b.imageUrl);
+      await restarted.clear();
+      final cleared = DownloadService();
+      await cleared.load();
+      expect(cleared.items, isEmpty);
+    });
     test('记录与持久化往返', () async {
       final DownloadService service = DownloadService();
       await service.record(const ImageItem(imageUrl: 'https://x/d.jpg'));

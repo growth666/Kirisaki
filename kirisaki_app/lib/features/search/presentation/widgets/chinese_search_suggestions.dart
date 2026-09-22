@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart' show PointerDeviceKind;
 
 import '../../../../core/source/chinese_search_dictionary.dart';
 
@@ -66,24 +67,32 @@ class _ChineseSearchSuggestionsState extends State<ChineseSearchSuggestions> {
             children: [
               const Text('中文候选 · 左右滑动，点击搜索'),
               const SizedBox(height: 4),
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    for (final entry in entries)
-                      Padding(
-                        padding: const EdgeInsets.only(right: 8),
-                        child: ActionChip(
-                          label: Text(entry.label),
-                          tooltip: entry.keywordFor(widget.sourceId!),
-                          onPressed: widget.onSelected == null
-                              ? null
-                              : () => widget.onSelected!(
-                                  entry.keywordFor(widget.sourceId!)!,
-                                ),
+              ScrollConfiguration(
+                behavior: ScrollConfiguration.of(context).copyWith(
+                  dragDevices: {
+                    ...ScrollConfiguration.of(context).dragDevices,
+                    PointerDeviceKind.mouse,
+                  },
+                ),
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      for (final entry in entries)
+                        Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: ActionChip(
+                            label: Text(entry.label),
+                            tooltip: entry.keywordFor(widget.sourceId!),
+                            onPressed: widget.onSelected == null
+                                ? null
+                                : () => widget.onSelected!(
+                                    entry.keywordFor(widget.sourceId!)!,
+                                  ),
+                          ),
                         ),
-                      ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ],

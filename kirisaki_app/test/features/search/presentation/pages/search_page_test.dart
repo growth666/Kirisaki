@@ -13,7 +13,6 @@ import 'package:http/testing.dart';
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 
-import 'package:kirisaki_app/core/source/source_config.dart';
 import 'package:kirisaki_app/core/source/source_service.dart';
 import 'package:kirisaki_app/core/source/source_parse_service.dart';
 import 'package:kirisaki_app/features/preview/presentation/pages/image_preview_page.dart';
@@ -133,8 +132,9 @@ void main() {
       final service = SourceParseService(
         client: MockClient((request) async {
           requests.add(request.url);
-          if (request.url.path == '/suggest')
+          if (request.url.path == '/suggest') {
             return http.Response('Solo|Theme|-', 200);
+          }
           return http.Response('{"items":[]}', 200);
         }),
       );
@@ -687,23 +687,8 @@ void main() {
 
     expect(find.byType(Card), findsNWidgets(2));
 
-    // 打开图源下拉并选择 konachan.net。
-    // 分类栏新增了同名 chip；DropdownMenu 自身含字段与隐藏菜单项两处
-    // 同名文本，用 descendant + first 定位字段内文本。
-    await tester.tap(
-      find
-          .descendant(
-            of: find.byType(DropdownMenu<SourceConfig>),
-            matching: find.text('Safebooru'),
-          )
-          .first,
-    );
-    await tester.pumpAndSettle();
-    // 直接点击菜单项组件（last 为展开 overlay 中的可见项，
-    // 隐藏测量层中的副本位于树序靠前）。
-    await tester.tap(
-      find.widgetWithText(MenuItemButton, 'Danbooru (Safe)').last,
-    );
+    // 通过唯一的图源切换栏选择图源。
+    await tester.tap(find.widgetWithText(ChoiceChip, 'Danbooru (Safe)'));
     await tester.pumpAndSettle();
 
     // 切换图源：列表清空、回到初始提示。
@@ -764,7 +749,7 @@ void main() {
     expect(cards, greaterThanOrEqualTo(4)); // 分页追加成功
   });
 
-  testWidgets('点击分类 chip 同步下拉框选中图源', (WidgetTester tester) async {
+  testWidgets('点击分类 chip 切换选中图源', (WidgetTester tester) async {
     final SourceParseService service = SourceParseService(
       client: MockClient(
         (http.Request request) async => http.Response('', 200),

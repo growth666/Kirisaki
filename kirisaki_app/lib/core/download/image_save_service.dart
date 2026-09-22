@@ -7,7 +7,7 @@ class ImageSaveResult {
 
   /// 保存失败，[errorMessage] 为可直接展示给用户的中文提示。
   const ImageSaveResult.failure(String errorMessage)
-      : this._(errorMessage: errorMessage);
+    : this._(errorMessage: errorMessage);
 
   /// 错误信息（成功时为 null）。
   final String? errorMessage;
@@ -32,4 +32,24 @@ abstract interface class ImageSaveService {
     required String imageUrl,
     String? fileName,
   });
+}
+
+/// 生成跨平台安全的建议文件名。
+String suggestedImageFileName(String imageUrl, {String? sourceName, int? id}) {
+  final uri = Uri.tryParse(imageUrl);
+  final host = (sourceName ?? uri?.host ?? 'image').replaceAll(
+    RegExp(r'[^A-Za-z0-9一-龥_-]+'),
+    '_',
+  );
+  final segments =
+      uri?.pathSegments.where((s) => s.isNotEmpty).toList() ?? const <String>[];
+  final last = segments.isEmpty ? null : segments.last;
+  final pathId = id?.toString() ?? (last ?? 'image').split('.').first;
+  final safeId = pathId.replaceAll(RegExp(r'[^A-Za-z0-9一-龥_-]+'), '_');
+  var ext = '';
+  if (last != null && last.contains('.')) {
+    ext = last.substring(last.lastIndexOf('.')).toLowerCase();
+  }
+  if (!RegExp(r'^\.(jpe?g|png|webp|gif|bmp|avif)$').hasMatch(ext)) ext = '.jpg';
+  return 'Kirisaki_${host.isEmpty ? 'image' : host}_${safeId.isEmpty ? 'image' : safeId}$ext';
 }

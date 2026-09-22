@@ -55,9 +55,7 @@ class DownloadService extends ChangeNotifier {
         _items
           ..clear()
           ..addAll(
-            decoded
-                .whereType<Map<String, Object?>>()
-                .map(ImageItem.fromJson),
+            decoded.whereType<Map<String, Object?>>().map(ImageItem.fromJson),
           );
         notifyListeners();
       }
@@ -82,6 +80,13 @@ class DownloadService extends ChangeNotifier {
       return;
     }
     _items.clear();
+    notifyListeners();
+    await _persist();
+  }
+
+  /// Remove one record without touching the downloaded file on disk.
+  Future<void> remove(ImageItem item) async {
+    _items.removeWhere((e) => e.imageUrl == item.imageUrl);
     notifyListeners();
     await _persist();
   }

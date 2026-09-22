@@ -89,41 +89,65 @@ class ImagePreviewPage extends StatelessWidget {
 }
 
 /// 下载按钮：调用平台下载服务（Web 浏览器下载 / 其他平台 stub）。
-class _DownloadButton extends StatelessWidget {
+class _DownloadButton extends StatefulWidget {
   const _DownloadButton({required this.item, this.service});
 
   final ImageItem item;
   final ImageSaveService? service;
 
   @override
+  State<_DownloadButton> createState() => _DownloadButtonState();
+}
+
+class _DownloadButtonState extends State<_DownloadButton> {
+  bool _downloading = false;
+
+  Future<void> _download() async {
+    if (_downloading) return;
+    setState(() => _downloading = true);
+    final ImageSaveResult result =
+        await (widget.service ?? createImageDownloadService()).saveImage(
+          imageUrl: widget.item.imageUrl,
+          fileName: suggestedImageFileName(
+            widget.item.imageUrl,
+            sourceName: Uri.tryParse(widget.item.sourcePage ?? '')?.host,
+          ),
+        );
+    if (!mounted) return;
+    setState(() => _downloading = false);
+    if (result.isSuccess) {
+      await DownloadService.instance.record(widget.item);
+    }
+    if (!mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(
+            result.isSuccess
+                ? (result.message ?? '已保存下载文件')
+                : (result.errorMessage ?? '下载失败'),
+          ),
+          action: result.isSuccess
+              ? null
+              : SnackBarAction(label: '重试', onPressed: _download),
+        ),
+      );
+  }
+
+  @override
   Widget build(BuildContext context) {
     return IconButton(
-      tooltip: '下载',
-      icon: const Icon(Icons.download_outlined),
-      onPressed: () async {
-        final ImageSaveResult result =
-            await (service ?? createImageDownloadService()).saveImage(
-              imageUrl: item.imageUrl,
-            );
-        // 下载成功自动记录到下载记录（持久化静默容错）。
-        if (result.isSuccess) {
-          DownloadService.instance.record(item);
-        }
-        if (!context.mounted) {
-          return;
-        }
-        ScaffoldMessenger.of(context)
-          ..hideCurrentSnackBar()
-          ..showSnackBar(
-            SnackBar(
-              content: Text(
-                result.isSuccess
-                    ? (result.message ?? '已开始下载')
-                    : result.errorMessage!,
-              ),
-            ),
-          );
-      },
+      tooltip: _downloading ? '下载中' : '下载',
+      icon: _downloading
+          ? const SizedBox(
+              width: 22,
+              height: 22,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : const Icon(Icons.download_outlined),
+      onPressed: _downloading ? null : _download,
     );
   }
 }
@@ -214,6 +238,8 @@ class _PreviewBody extends StatefulWidget {
 }
 
 class _PreviewBodyState extends State<_PreviewBody> {
+  bool _detailsExpanded = false;
+
   /// 缩放/平移变换控制器（双指缩放与滚轮缩放共用）。
   final TransformationController _transformationController =
       TransformationController();
@@ -259,57 +285,70 @@ class _PreviewBodyState extends State<_PreviewBody> {
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
     final ImageItem item = widget.item;
-    return Column(
-      children: [
-        // 原图区域：InteractiveViewer 提供双指缩放与拖动，
-        // Listener 捕获滚轮事件实现鼠标缩放；加载失败显示错误占位组件。
-        Expanded(
-          child: Listener(
-            onPointerSignal: _onPointerSignal,
-            child: InteractiveViewer(
-              transformationController: _transformationController,
-              minScale: 1.0,
-              maxScale: 8.0,
-              clipBehavior: Clip.hardEdge,
-              child: Center(child: OriginalImage(url: _displayUrl(item))),
-            ),
+    final image = Listener(
+      onPointerSignal: _onPointerSignal,
+      child: InteractiveViewer(
+        transformationController: _transformationController,
+        minScale: 1.0,
+        maxScale: 8.0,
+        clipBehavior: Clip.hardEdge,
+        child: Center(child: OriginalImage(url: _displayUrl(item))),
+      ),
+    );
+    final details = SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('图片信息', style: theme.textTheme.titleMedium),
+          const SizedBox(height: 16),
+          Text('标签 · ${item.tags.length}', style: theme.textTheme.labelLarge),
+          const SizedBox(height: 8),
+          if (item.tags.isEmpty) const Text('暂无标签'),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [for (final tag in item.tags) Text('#$tag')],
           ),
-        ),
-        // 标签列表（完整渲染 ImageItem.tags）。
-        if (item.tags.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Wrap(
-                spacing: 8,
-                runSpacing: 4,
-                children: [
-                  for (final String tag in item.tags)
-                    Text(
-                      '#$tag',
-                      style: theme.textTheme.labelMedium?.copyWith(
-                        color: theme.colorScheme.primary,
-                      ),
-                    ),
-                ],
+          const SizedBox(height: 20),
+          Text('图片地址', style: theme.textTheme.labelLarge),
+          const SizedBox(height: 8),
+          SelectableText(item.imageUrl, style: theme.textTheme.bodySmall),
+        ],
+      ),
+    );
+    return SafeArea(
+      top: false,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          if (constraints.maxWidth >= 800) {
+            return Row(
+              children: [
+                Expanded(child: image),
+                const VerticalDivider(width: 1),
+                SizedBox(width: 280, child: details),
+              ],
+            );
+          }
+          return Column(
+            children: [
+              Expanded(child: image),
+              const Divider(height: 1),
+              ListTile(
+                dense: true,
+                title: Text('图片信息 · ${item.tags.length} 个标签'),
+                trailing: Icon(
+                  _detailsExpanded ? Icons.expand_more : Icons.expand_less,
+                ),
+                onTap: () =>
+                    setState(() => _detailsExpanded = !_detailsExpanded),
               ),
-            ),
-          ),
-        // 底部来源地址小字（提供来源信息，兼容既有测试断言）。
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-          child: Text(
-            item.imageUrl,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            textAlign: TextAlign.center,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.outline,
-            ),
-          ),
-        ),
-      ],
+              if (_detailsExpanded)
+                SizedBox(height: constraints.maxHeight * 0.35, child: details),
+            ],
+          );
+        },
+      ),
     );
   }
 }

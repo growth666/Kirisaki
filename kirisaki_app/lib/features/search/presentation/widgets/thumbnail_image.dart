@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 import '../../../../core/cache/thumbnail_memory_cache.dart';
+import '../../../../core/cache/thumbnail_disk_cache.dart';
 import '../../../../core/network/http_client_factory.dart';
 import '../../../../core/network/proxy_settings_service.dart';
 import '../../../../core/source/source_parse_service.dart';
@@ -104,6 +105,14 @@ class _ThumbnailImageState extends State<ThumbnailImage> {
       setState(() => _bytes = cached);
       return;
     }
+    final Uint8List? diskCached = await ThumbnailDiskCache.instance.get(key);
+    if (diskCached != null) {
+      _cache.put(key, diskCached);
+      if (mounted && generation == _generation) {
+        setState(() => _bytes = diskCached);
+      }
+      return;
+    }
 
     try {
       final http.Response response = await _client
@@ -115,6 +124,7 @@ class _ThumbnailImageState extends State<ThumbnailImage> {
       final Uint8List bytes = response.bodyBytes;
       // 仅缩略图写入内存缓存（原图不走本组件）。
       _cache.put(key, bytes);
+      await ThumbnailDiskCache.instance.put(key, bytes);
       if (!mounted || generation != _generation) {
         return;
       }

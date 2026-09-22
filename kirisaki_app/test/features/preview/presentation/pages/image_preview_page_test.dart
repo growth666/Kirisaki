@@ -22,6 +22,36 @@ class _FailedDownload implements ImageSaveService {
 }
 
 void main() {
+  testWidgets('窄屏大量标签可折叠且保留图片空间', (tester) async {
+    tester.view.physicalSize = const Size(360, 640);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ImagePreviewPage(
+          item: ImageItem(
+            imageUrl: 'https://example.test/a.jpg',
+            tags: List.generate(100, (i) => 'tag_$i'),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    expect(find.text('#tag_0'), findsNothing);
+    await tester.tap(find.byType(ListTile));
+    await tester.pump();
+    expect(find.text('#tag_0'), findsOneWidget);
+    expect(
+      tester.getSize(find.byType(InteractiveViewer)).height,
+      greaterThan(200),
+    );
+    expect(tester.takeException(), isNull);
+    await tester.tap(find.byType(ListTile));
+    await tester.pump();
+    expect(find.text('#tag_0'), findsNothing);
+  });
+
   setUpAll(() {
     // CachedNetworkImage 默认缓存依赖 path_provider 插件，
     // 测试环境无插件实现，mock 通道返回系统临时目录。

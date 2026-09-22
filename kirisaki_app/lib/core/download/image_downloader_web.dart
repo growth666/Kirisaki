@@ -28,14 +28,13 @@ class WebImageDownloadService implements ImageSaveService {
     required String imageUrl,
     String? fileName,
   }) async {
-    final String name = fileName ?? _fileNameFromUrl(imageUrl);
+    final String name = fileName ?? suggestedImageFileName(imageUrl);
 
     // 特性检测：支持则优先走"自选保存位置"链路。
     final JSObject windowObj = web.window as JSObject;
     if (windowObj.has('showSaveFilePicker')) {
       try {
-        final web.FileSystemFileHandle handle =
-            await _showSaveFilePicker(name);
+        final web.FileSystemFileHandle handle = await _showSaveFilePicker(name);
         return await _saveToPickedHandle(handle, imageUrl);
       } catch (_) {
         // 用户取消（AbortError）或其他 JS 异常：视为取消，不回退下载。
@@ -44,16 +43,14 @@ class WebImageDownloadService implements ImageSaveService {
     }
 
     // —— 回退：既有三级链路（原逻辑不变）——
-    final String? proxiedUrl =
-        kIsWeb && SourceParseService.webCorsProxyEnabled
-            ? SourceParseService.buildProxyUri(Uri.parse(imageUrl)).toString()
-            : null;
+    final String? proxiedUrl = kIsWeb && SourceParseService.webCorsProxyEnabled
+        ? SourceParseService.buildProxyUri(Uri.parse(imageUrl)).toString()
+        : null;
 
     final List<String> candidates = <String>[?proxiedUrl, imageUrl];
     for (final String url in candidates) {
       try {
-        final web.Response response =
-            await web.window.fetch(url.toJS).toDart;
+        final web.Response response = await web.window.fetch(url.toJS).toDart;
         if (!response.ok) {
           continue;
         }
@@ -83,14 +80,10 @@ class WebImageDownloadService implements ImageSaveService {
   Future<web.FileSystemFileHandle> _showSaveFilePicker(
     String suggestedName,
   ) async {
-    final JSAny? options = <String, Object?>{
-      'suggestedName': suggestedName,
-    }.jsify();
-    final JSPromise<JSAny?> promise =
-        (web.window as JSObject).callMethod<JSPromise<JSAny?>>(
-          'showSaveFilePicker'.toJS,
-          options,
-        );
+    final JSAny? options = <String, Object?>{'suggestedName': suggestedName}
+        .jsify();
+    final JSPromise<JSAny?> promise = (web.window as JSObject)
+        .callMethod<JSPromise<JSAny?>>('showSaveFilePicker'.toJS, options);
     final JSAny? result = await promise.toDart;
     if (result == null) {
       throw StateError('未获取到文件句柄');
@@ -106,8 +99,8 @@ class WebImageDownloadService implements ImageSaveService {
     try {
       final String? proxiedUrl =
           kIsWeb && SourceParseService.webCorsProxyEnabled
-              ? SourceParseService.buildProxyUri(Uri.parse(imageUrl)).toString()
-              : null;
+          ? SourceParseService.buildProxyUri(Uri.parse(imageUrl)).toString()
+          : null;
       web.Response? response;
       for (final String url in <String>[?proxiedUrl, imageUrl]) {
         try {
@@ -128,8 +121,9 @@ class WebImageDownloadService implements ImageSaveService {
         <JSArrayBuffer>[buffer].toJS,
         web.BlobPropertyBag(type: 'application/octet-stream'),
       );
-      final web.FileSystemWritableFileStream writable =
-          await handle.createWritable().toDart;
+      final web.FileSystemWritableFileStream writable = await handle
+          .createWritable()
+          .toDart;
       await writable.write(blob).toDart; // FileSystemWriteChunkType = JSAny
       await writable.close().toDart;
       return const ImageSaveResult.success(message: '已保存到所选位置');
@@ -154,13 +148,4 @@ class WebImageDownloadService implements ImageSaveService {
   }
 
   /// 从图片 URL 末段提取文件名；无扩展名时使用通用兜底名。
-  static String _fileNameFromUrl(String url) {
-    final Uri uri = Uri.parse(url);
-    final String? last =
-        uri.pathSegments.isNotEmpty ? uri.pathSegments.last : null;
-    if (last == null || last.isEmpty || !last.contains('.')) {
-      return 'image.bin';
-    }
-    return last;
-  }
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/cache/thumbnail_memory_cache.dart';
+import '../../../../core/cache/thumbnail_disk_cache.dart';
 import '../../../../core/download/download_dir_picker.dart';
 import '../../../../core/favorite/favorite_service.dart';
 import '../../../../core/profile/download_service.dart';
@@ -215,10 +216,16 @@ class _SettingsPageState extends State<SettingsPage> {
               ListTile(
                 leading: const Icon(Icons.photo_size_select_actual_outlined),
                 title: const Text('缩略图缓存'),
-                subtitle: Text('${ThumbnailMemoryCache.instance.length} 项'),
+                subtitle: FutureBuilder<int>(
+                  future: ThumbnailDiskCache.instance.sizeBytes,
+                  builder: (context, snapshot) => Text(
+                    '${ThumbnailMemoryCache.instance.length} 项内存缓存 · 磁盘 ${((snapshot.data ?? 0) / 1024 / 1024).toStringAsFixed(1)} MB',
+                  ),
+                ),
                 trailing: TextButton(
                   onPressed: () {
                     ThumbnailMemoryCache.instance.clear();
+                    ThumbnailDiskCache.instance.clear();
                     setState(() {});
                   },
                   child: const Text('清除'),
