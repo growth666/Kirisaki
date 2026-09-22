@@ -32,6 +32,27 @@ class MainActivity : FlutterActivity() {
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "kirisaki/display")
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "setRefreshRate" -> {
+                        val mode = call.arguments as? String ?: "system"
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                            val modes = windowManager.defaultDisplay.supportedModes
+                            val selected = when (mode) {
+                                "high" -> modes.maxByOrNull { it.refreshRate }
+                                "standard" -> modes.minByOrNull { kotlin.math.abs(it.refreshRate - 60f) }
+                                else -> null
+                            }
+                            window.attributes = window.attributes.apply {
+                                preferredDisplayModeId = selected?.modeId ?: 0
+                            }
+                        }
+                        result.success(null)
+                    }
+                    else -> result.notImplemented()
+                }
+            }
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, downloadChannel)
             .setMethodCallHandler { call, result ->
                 when (call.method) {

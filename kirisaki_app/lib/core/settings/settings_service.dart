@@ -12,11 +12,13 @@ class SettingsService extends ChangeNotifier {
   static const String themeModeKey = 'theme_mode';
   static const String downloadDirKey = 'download_dir';
   static const String showAdultContentKey = 'show_adult_content';
+  static const String refreshRateKey = 'refresh_rate_mode';
 
   SharedPreferencesAsync? _prefs;
   ThemeMode _themeMode = ThemeMode.system;
   String? _downloadDir;
   bool _showAdultContent = false;
+  RefreshRateMode _refreshRateMode = RefreshRateMode.system;
 
   /// 当前主题模式（默认跟随系统）。
   ThemeMode get themeMode => _themeMode;
@@ -25,6 +27,7 @@ class SettingsService extends ChangeNotifier {
   /// null = 系统默认下载目录）。Web 端无目录概念（下载时弹系统保存对话框）。
   String? get downloadDir => _downloadDir;
   bool get showAdultContent => _showAdultContent;
+  RefreshRateMode get refreshRateMode => _refreshRateMode;
 
   SharedPreferencesAsync? get _ensurePrefs {
     try {
@@ -51,6 +54,11 @@ class SettingsService extends ChangeNotifier {
       // 下载位置独立于主题读取（主题未设置时同样要恢复）。
       _downloadDir = await prefs.getString(downloadDirKey);
       _showAdultContent = await prefs.getBool(showAdultContentKey) ?? false;
+      final rawRefresh = await prefs.getString(refreshRateKey);
+      _refreshRateMode = RefreshRateMode.values.firstWhere(
+        (mode) => mode.name == rawRefresh,
+        orElse: () => RefreshRateMode.system,
+      );
       notifyListeners();
     } catch (_) {
       // 损坏数据容错。
@@ -115,4 +123,15 @@ class SettingsService extends ChangeNotifier {
       // IO 异常静默。
     }
   }
+
+  Future<void> setRefreshRateMode(RefreshRateMode mode) async {
+    if (_refreshRateMode == mode) return;
+    _refreshRateMode = mode;
+    notifyListeners();
+    try {
+      await (_ensurePrefs)?.setString(refreshRateKey, mode.name);
+    } catch (_) {}
+  }
 }
+
+enum RefreshRateMode { system, standard, high }

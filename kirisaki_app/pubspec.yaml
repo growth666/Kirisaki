@@ -16,6 +16,7 @@ dependencies:
   dio: ^5.11.0
   # HTTP 请求（图源解析服务使用）
   http: ^1.6.0
+  crypto: ^3.0.7
   # HTML 解析（CSS 选择器）
   html: ^0.15.7
   # Web 平台 API（浏览器下载实现用，规避已废弃的 dart:html）

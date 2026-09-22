@@ -5,6 +5,24 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kirisaki_app/core/cache/thumbnail_memory_cache.dart';
 
 void main() {
+  test(
+    'byte budget evicts least recently used and rejects oversized entries',
+    () {
+      final cache = ThumbnailMemoryCache(maxBytes: 4);
+      cache.put('a', Uint8List(2));
+      cache.put('b', Uint8List(2));
+      cache.get('a');
+      cache.put('c', Uint8List(2));
+      expect(cache.get('b'), isNull);
+      expect(cache.get('a'), isNotNull);
+      expect(cache.sizeBytes, 4);
+      cache.put('large', Uint8List(5));
+      expect(cache.get('large'), isNull);
+      expect(cache.sizeBytes, 4);
+      cache.clear();
+      expect(cache.sizeBytes, 0);
+    },
+  );
   test('put/get 与未命中', () {
     final ThumbnailMemoryCache cache = ThumbnailMemoryCache(maxEntries: 2);
     final Uint8List bytes = Uint8List.fromList(<int>[1, 2, 3]);

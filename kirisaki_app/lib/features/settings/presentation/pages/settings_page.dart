@@ -223,10 +223,10 @@ class _SettingsPageState extends State<SettingsPage> {
                   ),
                 ),
                 trailing: TextButton(
-                  onPressed: () {
+                  onPressed: () async {
                     ThumbnailMemoryCache.instance.clear();
-                    ThumbnailDiskCache.instance.clear();
-                    setState(() {});
+                    await ThumbnailDiskCache.instance.clear();
+                    if (mounted) setState(() {});
                   },
                   child: const Text('清除'),
                 ),

@@ -817,12 +817,15 @@ class _SearchPageState extends State<SearchPage>
                 childCount: _items.length,
                 itemBuilder: (BuildContext context, int index) {
                   final ImageItem item = _items[index];
-                  return _ImageCard(
-                    item: item,
-                    onTap: () => _openPreview(item),
-                    // 是否走代理随图源配置（ImageItem.useProxy）；
-                    // 国内直连图源（推荐流/百度/必应）直连加载。
-                    useProxy: item.useProxy,
+                  return RepaintBoundary(
+                    key: ValueKey<String>(item.imageUrl),
+                    child: _ImageCard(
+                      item: item,
+                      onTap: () => _openPreview(item),
+                      // 是否走代理随图源配置（ImageItem.useProxy）；
+                      // 国内直连图源（推荐流/百度/必应）直连加载。
+                      useProxy: item.useProxy,
+                    ),
                   );
                 },
               ),

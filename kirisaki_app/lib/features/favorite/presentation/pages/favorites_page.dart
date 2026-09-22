@@ -110,7 +110,9 @@ class _FavoritesPageState extends State<FavoritesPage>
           final List<ImageItem> ordered = items.reversed.toList();
           if (items.isEmpty) {
             // 非选择模式下空态展示占位引导。
-            return _selectionMode ? const SizedBox.shrink() : const _EmptyView();
+            return _selectionMode
+                ? const SizedBox.shrink()
+                : const _EmptyView();
           }
           return Column(
             children: [
@@ -122,16 +124,17 @@ class _FavoritesPageState extends State<FavoritesPage>
                   child: Text(
                     '共 ${ordered.length} 张',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context).colorScheme.outline,
-                        ),
+                      color: Theme.of(context).colorScheme.outline,
+                    ),
                   ),
                 ),
               ),
               Expanded(
                 child: LayoutBuilder(
                   builder: (BuildContext context, BoxConstraints constraints) {
-                    final int crossAxisCount =
-                        (constraints.maxWidth / 200).floor().clamp(2, 5);
+                    final int crossAxisCount = (constraints.maxWidth / 200)
+                        .floor()
+                        .clamp(2, 5);
                     return CustomScrollView(
                       slivers: [
                         SliverPadding(
@@ -143,15 +146,19 @@ class _FavoritesPageState extends State<FavoritesPage>
                             childCount: ordered.length,
                             itemBuilder: (BuildContext context, int index) {
                               final ImageItem item = ordered[index];
-                              return _FavoriteCard(
+                              return RepaintBoundary(
                                 // 按内容匹配 Element：新收藏头插导致整体移位时，
                                 // State（含缩略图）跟随 item 而非位置，避免图片错位。
                                 key: ValueKey<String>(item.imageUrl),
-                                item: item,
-                                selectionMode: _selectionMode,
-                                selected: _selectedUrls.contains(item.imageUrl),
-                                onTap: () => _onCardTap(item),
-                                onLongPress: () => _enterSelection(item),
+                                child: _FavoriteCard(
+                                  item: item,
+                                  selectionMode: _selectionMode,
+                                  selected: _selectedUrls.contains(
+                                    item.imageUrl,
+                                  ),
+                                  onTap: () => _onCardTap(item),
+                                  onLongPress: () => _enterSelection(item),
+                                ),
                               );
                             },
                           ),
@@ -172,7 +179,6 @@ class _FavoritesPageState extends State<FavoritesPage>
 /// 收藏卡片：缩略图（走内存缓存）+ 标签；多选模式下显示勾选角标。
 class _FavoriteCard extends StatelessWidget {
   const _FavoriteCard({
-    super.key,
     required this.item,
     required this.selectionMode,
     required this.selected,
@@ -190,7 +196,8 @@ class _FavoriteCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
     final String thumbnail = item.thumbnailUrl ?? item.imageUrl;
-    final double aspectRatio = item.width != null &&
+    final double aspectRatio =
+        item.width != null &&
             item.height != null &&
             item.width! > 0 &&
             item.height! > 0
@@ -210,7 +217,10 @@ class _FavoriteCard extends StatelessWidget {
                   constraints: const BoxConstraints(minHeight: 140),
                   child: AspectRatio(
                     aspectRatio: aspectRatio,
-                    child: ThumbnailImage(url: thumbnail, useProxy: item.useProxy),
+                    child: ThumbnailImage(
+                      url: thumbnail,
+                      useProxy: item.useProxy,
+                    ),
                   ),
                 ),
                 if (item.tags.isNotEmpty)
@@ -223,8 +233,9 @@ class _FavoriteCard extends StatelessWidget {
                         for (final String tag in item.tags.take(8))
                           Text(
                             '#$tag',
-                            style: theme.textTheme.labelSmall
-                                ?.copyWith(color: theme.colorScheme.primary),
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: theme.colorScheme.primary,
+                            ),
                           ),
                       ],
                     ),
@@ -284,8 +295,9 @@ class _EmptyView extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             '暂无收藏',
-            style: theme.textTheme.bodyMedium
-                ?.copyWith(color: theme.colorScheme.outline),
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.outline,
+            ),
           ),
         ],
       ),

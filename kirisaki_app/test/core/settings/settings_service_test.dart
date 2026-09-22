@@ -32,6 +32,15 @@ void main() {
     expect(notified, 1);
   });
 
+  test('刷新率模式持久化往返', () async {
+    final service = SettingsService();
+    expect(service.refreshRateMode, RefreshRateMode.system);
+    await service.setRefreshRateMode(RefreshRateMode.high);
+    final restarted = SettingsService();
+    await restarted.load();
+    expect(restarted.refreshRateMode, RefreshRateMode.high);
+  });
+
   test('下载位置持久化往返与重置', () async {
     final SettingsService service = SettingsService();
     expect(service.downloadDir, isNull); // 默认系统目录

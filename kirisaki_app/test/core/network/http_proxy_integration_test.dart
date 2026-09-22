@@ -87,10 +87,14 @@ void main() {
             .body,
         'second',
       );
-      final saved = await IoImageDownloadService(
-        downloadDirOverride: folder,
-        client: client,
-      ).saveImage(imageUrl: 'http://example.invalid/download.jpg');
+      final saved =
+          await IoImageDownloadService(
+            downloadDirOverride: folder,
+            client: client,
+          ).saveImage(
+            imageUrl: 'http://example.invalid/download.jpg',
+            fileName: 'download.jpg',
+          );
       expect(saved.isSuccess, true);
       expect(
         await File('${folder.path}/download.jpg').readAsString(),

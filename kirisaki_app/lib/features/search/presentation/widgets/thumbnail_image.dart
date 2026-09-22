@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'dart:async';
 
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
@@ -6,7 +7,7 @@ import 'package:http/http.dart' as http;
 
 import '../../../../core/cache/thumbnail_memory_cache.dart';
 import '../../../../core/cache/thumbnail_disk_cache.dart';
-import '../../../../core/network/http_client_factory.dart';
+import '../../../../core/network/thumbnail_requests.dart';
 import '../../../../core/network/proxy_settings_service.dart';
 import '../../../../core/source/source_parse_service.dart';
 
@@ -24,6 +25,7 @@ class ThumbnailImage extends StatefulWidget {
     required this.url,
     this.client,
     this.cache,
+    this.diskCache,
     this.useProxy = true,
   });
 
@@ -35,6 +37,7 @@ class ThumbnailImage extends StatefulWidget {
 
   /// 注入的缓存实例（测试用），默认使用全局单例。
   final ThumbnailMemoryCache? cache;
+  final ThumbnailDiskCache? diskCache;
 
   /// Web 端是否走 CORS 代理（默认 true 沿用全局开关语义；
   /// 国内可直连的图源（如推荐流）传 false 直连）。
@@ -45,9 +48,10 @@ class ThumbnailImage extends StatefulWidget {
 }
 
 class _ThumbnailImageState extends State<ThumbnailImage> {
-  late final http.Client _client = widget.client ?? buildClient();
   late final ThumbnailMemoryCache _cache =
       widget.cache ?? ThumbnailMemoryCache.instance;
+  late final ThumbnailDiskCache _diskCache =
+      widget.diskCache ?? ThumbnailDiskCache.instance;
 
   Uint8List? _bytes; // 已加载的图片字节（命中缓存或请求成功）
   bool _failed = false; // 请求失败标记（展示错误图标占位）
@@ -71,7 +75,6 @@ class _ThumbnailImageState extends State<ThumbnailImage> {
   void dispose() {
     _generation++;
     ProxySettingsService.instance.removeListener(_proxyChanged);
-    if (widget.client == null) _client.close();
     super.dispose();
   }
 
@@ -105,7 +108,7 @@ class _ThumbnailImageState extends State<ThumbnailImage> {
       setState(() => _bytes = cached);
       return;
     }
-    final Uint8List? diskCached = await ThumbnailDiskCache.instance.get(key);
+    final Uint8List? diskCached = await _diskCache.get(key);
     if (diskCached != null) {
       _cache.put(key, diskCached);
       if (mounted && generation == _generation) {
@@ -115,16 +118,25 @@ class _ThumbnailImageState extends State<ThumbnailImage> {
     }
 
     try {
-      final http.Response response = await _client
-          .get(Uri.parse(key))
-          .timeout(const Duration(seconds: 10));
-      if (response.statusCode != 200) {
-        throw http.ClientException('HTTP ${response.statusCode}');
+      if (!mounted || generation != _generation) return;
+      final Uint8List bytes;
+      if (widget.client case final client?) {
+        final response = await client
+            .get(Uri.parse(key))
+            .timeout(const Duration(seconds: 10));
+        if (response.statusCode != 200 || response.bodyBytes.isEmpty) {
+          throw http.ClientException('HTTP ${response.statusCode}');
+        }
+        bytes = response.bodyBytes;
+      } else {
+        bytes = await ThumbnailRequests.instance.load(
+          key,
+          isNeeded: () => mounted && generation == _generation,
+        );
       }
-      final Uint8List bytes = response.bodyBytes;
       // 仅缩略图写入内存缓存（原图不走本组件）。
       _cache.put(key, bytes);
-      await ThumbnailDiskCache.instance.put(key, bytes);
+      unawaited(_diskCache.put(key, bytes));
       if (!mounted || generation != _generation) {
         return;
       }
@@ -142,7 +154,24 @@ class _ThumbnailImageState extends State<ThumbnailImage> {
     final ThemeData theme = Theme.of(context);
     final Uint8List? bytes = _bytes;
     if (bytes != null) {
-      return Image.memory(bytes, fit: BoxFit.cover, gaplessPlayback: true);
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          final width = constraints.maxWidth;
+          final pixels = width.isFinite && width > 0
+              ? (width * MediaQuery.devicePixelRatioOf(context)).ceil().clamp(
+                  1,
+                  2048,
+                )
+              : null;
+          return Image.memory(
+            bytes,
+            fit: BoxFit.cover,
+            gaplessPlayback: true,
+            cacheWidth: pixels,
+            errorBuilder: (_, _, _) => const Icon(Icons.broken_image_outlined),
+          );
+        },
+      );
     }
     // 加载中/未开始：灰色占位；失败：错误图标占位。
     return ColoredBox(
