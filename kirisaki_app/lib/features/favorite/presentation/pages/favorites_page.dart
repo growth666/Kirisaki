@@ -223,23 +223,6 @@ class _FavoriteCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                if (item.tags.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(8, 6, 8, 8),
-                    child: Wrap(
-                      spacing: 6,
-                      runSpacing: 2,
-                      children: [
-                        for (final String tag in item.tags.take(8))
-                          Text(
-                            '#$tag',
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              color: theme.colorScheme.primary,
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
               ],
             ),
             // 多选模式下右上角勾选角标；选中态叠加半透明遮罩。

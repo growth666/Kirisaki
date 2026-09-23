@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
@@ -24,9 +24,9 @@ GoRouter _router(FavoriteService service) {
         path: '/preview',
         builder: (BuildContext context, GoRouterState state) =>
             ImagePreviewPage(
-          item: state.extra is ImageItem ? state.extra! as ImageItem : null,
-          imageUrl: state.uri.queryParameters['url'],
-        ),
+              item: state.extra is ImageItem ? state.extra! as ImageItem : null,
+              imageUrl: state.uri.queryParameters['url'],
+            ),
       ),
     ],
   );
@@ -40,9 +40,7 @@ void main() {
 
   testWidgets('空收藏显示空态提示', (WidgetTester tester) async {
     final FavoriteService service = FavoriteService();
-    await tester.pumpWidget(
-      MaterialApp.router(routerConfig: _router(service)),
-    );
+    await tester.pumpWidget(MaterialApp.router(routerConfig: _router(service)));
     await tester.pump();
 
     expect(find.text('暂无收藏'), findsOneWidget);
@@ -50,17 +48,17 @@ void main() {
 
   testWidgets('收藏列表渲染并点击跳转复用预览页', (WidgetTester tester) async {
     final FavoriteService service = FavoriteService();
-    await service.add(const ImageItem(
-      imageUrl: 'https://example.test/f.jpg',
-      tags: <String>['fav'],
-    ));
-
-    await tester.pumpWidget(
-      MaterialApp.router(routerConfig: _router(service)),
+    await service.add(
+      const ImageItem(
+        imageUrl: 'https://example.test/f.jpg',
+        tags: <String>['fav'],
+      ),
     );
+
+    await tester.pumpWidget(MaterialApp.router(routerConfig: _router(service)));
     await tester.pump();
 
-    expect(find.text('#fav'), findsOneWidget);
+    expect(find.text('#fav'), findsNothing);
 
     await tester.tap(find.byType(Card));
     await tester.pump();
@@ -76,9 +74,7 @@ void main() {
     await service.add(const ImageItem(imageUrl: 'https://example.test/a.jpg'));
     await service.add(const ImageItem(imageUrl: 'https://example.test/b.jpg'));
 
-    await tester.pumpWidget(
-      MaterialApp.router(routerConfig: _router(service)),
-    );
+    await tester.pumpWidget(MaterialApp.router(routerConfig: _router(service)));
     await tester.pump();
 
     expect(find.text('共 2 张'), findsOneWidget);
@@ -99,9 +95,7 @@ void main() {
     await service.add(const ImageItem(imageUrl: 'https://example.test/a.jpg'));
     await service.add(const ImageItem(imageUrl: 'https://example.test/b.jpg'));
 
-    await tester.pumpWidget(
-      MaterialApp.router(routerConfig: _router(service)),
-    );
+    await tester.pumpWidget(MaterialApp.router(routerConfig: _router(service)));
     await tester.pump();
 
     expect(find.text('共 2 张'), findsOneWidget);

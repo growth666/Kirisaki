@@ -40,13 +40,13 @@ RoutingConfig _buildRoutingConfig() => RoutingConfig(
       path: RouteNames.contentDisplay,
       name: 'contentDisplay',
       pageBuilder: (BuildContext context, GoRouterState state) =>
-          fadePage(const ContentDisplayPage()),
+          profilePage(const ContentDisplayPage()),
     ),
     GoRoute(
       path: '/contributors',
       name: 'contributors',
       pageBuilder: (BuildContext context, GoRouterState state) =>
-          fadePage(const ContributorsPage()),
+          profilePage(const ContributorsPage()),
     ),
     GoRoute(
       path: RouteNames.search,
@@ -93,31 +93,31 @@ RoutingConfig _buildRoutingConfig() => RoutingConfig(
       path: RouteNames.history,
       name: 'history',
       pageBuilder: (BuildContext context, GoRouterState state) =>
-          fadePage(const BrowseHistoryPage()),
+          profilePage(const BrowseHistoryPage()),
     ),
     GoRoute(
       path: RouteNames.searchHistory,
       name: 'searchHistory',
       pageBuilder: (BuildContext context, GoRouterState state) =>
-          fadePage(const SearchHistoryPage()),
+          profilePage(const SearchHistoryPage()),
     ),
     GoRoute(
       path: RouteNames.downloads,
       name: 'downloads',
       pageBuilder: (BuildContext context, GoRouterState state) =>
-          fadePage(const DownloadRecordsPage()),
+          profilePage(const DownloadRecordsPage()),
     ),
     GoRoute(
       path: RouteNames.mySources,
       name: 'mySources',
       pageBuilder: (BuildContext context, GoRouterState state) =>
-          fadePage(const CustomSourcesPage()),
+          profilePage(const CustomSourcesPage()),
     ),
     GoRoute(
       path: RouteNames.settings,
       name: 'settings',
       pageBuilder: (BuildContext context, GoRouterState state) =>
-          fadePage(const SettingsPage()),
+          profilePage(const SettingsPage()),
     ),
     GoRoute(
       path: RouteNames.about,

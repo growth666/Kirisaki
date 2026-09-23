@@ -16,22 +16,29 @@ abstract final class AppFonts {
   ];
 }
 
-/// 全局主题配置（Kazumi 风格粉色系，Material 3）。
+/// 全局主题配置（Material 3）。
 abstract final class AppTheme {
   /// 主题种子色。
   static const Color seedColor = Color(0xFFEC407A);
+  static const double cardRadius = 16;
+  static const double controlRadius = 12;
+  static const double dialogRadius = 20;
 
   /// 亮色主题。
-  static final ThemeData light = _build(Brightness.light);
+  static final ThemeData light = _build(Brightness.light, seedColor);
 
   /// 暗色主题。
-  static final ThemeData dark = _build(Brightness.dark);
+  static final ThemeData dark = _build(Brightness.dark, seedColor);
 
-  static ThemeData _build(Brightness brightness) {
-    final ColorScheme colorScheme = ColorScheme.fromSeed(
-      seedColor: seedColor,
+  static ThemeData lightFor(Color seed) => _build(Brightness.light, seed);
+  static ThemeData darkFor(Color seed) => _build(Brightness.dark, seed);
+
+  static ThemeData _build(Brightness brightness, Color seed) {
+    final ColorScheme generated = ColorScheme.fromSeed(
+      seedColor: seed,
       brightness: brightness,
     );
+    final ColorScheme colorScheme = generated;
     return ThemeData(
       colorScheme: colorScheme,
       // 双层字体：默认正文（思源黑体系），标题走 TextTheme 内快乐体；
@@ -49,17 +56,72 @@ abstract final class AppTheme {
         surfaceTintColor: Colors.transparent,
       ),
       cardTheme: CardThemeData(
+        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         elevation: 0,
         clipBehavior: Clip.antiAlias,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(cardRadius),
+        ),
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: colorScheme.surfaceContainer,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 13,
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(controlRadius),
+          borderSide: BorderSide.none,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(controlRadius),
+          borderSide: BorderSide(color: colorScheme.outlineVariant),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(controlRadius),
+          borderSide: BorderSide(color: colorScheme.primary, width: 2),
+        ),
+      ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(controlRadius),
+          ),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(controlRadius),
+          ),
+        ),
+      ),
+      dialogTheme: DialogThemeData(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(dialogRadius),
+        ),
+      ),
+      listTileTheme: ListTileThemeData(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        minVerticalPadding: 8,
       ),
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: colorScheme.surface,
         indicatorColor: colorScheme.secondaryContainer,
       ),
+      chipTheme: ChipThemeData(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(controlRadius),
+        ),
+      ),
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(controlRadius),
+        ),
       ),
     );
   }
@@ -92,7 +154,10 @@ abstract final class AppTheme {
       // —— 标题/强调：快乐体 ——
       headlineSmall: titleBase.copyWith(fontSize: 24),
       titleLarge: titleBase.copyWith(fontSize: 20),
-      titleMedium: titleBase.copyWith(fontSize: 16, fontWeight: FontWeight.w500),
+      titleMedium: titleBase.copyWith(
+        fontSize: 16,
+        fontWeight: FontWeight.w500,
+      ),
       titleSmall: titleBase.copyWith(fontSize: 14, fontWeight: FontWeight.w500),
       labelLarge: titleBase.copyWith(fontSize: 14, fontWeight: FontWeight.w500),
       // —— 正文：思源黑体系，常规字重 ——

@@ -245,6 +245,35 @@ class _SettingsPageState extends State<SettingsPage> {
                   ],
                 ),
               ),
+              ListTile(
+                leading: const Icon(Icons.palette_outlined),
+                title: const Text('主题颜色'),
+                subtitle: Text(_accentLabel(_settings.accentColor)),
+                trailing: DropdownButton<AccentColor>(
+                  value: _settings.accentColor,
+                  onChanged: (value) {
+                    if (value != null) _settings.setAccentColor(value);
+                  },
+                  items: const [
+                    DropdownMenuItem(
+                      value: AccentColor.pink,
+                      child: Text('粉色'),
+                    ),
+                    DropdownMenuItem(
+                      value: AccentColor.wine,
+                      child: Text('酒红'),
+                    ),
+                    DropdownMenuItem(
+                      value: AccentColor.gold,
+                      child: Text('香槟金'),
+                    ),
+                    DropdownMenuItem(
+                      value: AccentColor.teal,
+                      child: Text('青绿色'),
+                    ),
+                  ],
+                ),
+              ),
               // —— 网络代理 ——
               const _GroupHeader('网络代理'),
               ListTile(
@@ -329,6 +358,13 @@ class _SettingsPageState extends State<SettingsPage> {
       ),
     );
   }
+
+  String _accentLabel(AccentColor color) => switch (color) {
+    AccentColor.pink => '默认粉色',
+    AccentColor.wine => '酒红',
+    AccentColor.gold => '香槟金',
+    AccentColor.teal => '青绿色',
+  };
 }
 
 /// 分组标题。

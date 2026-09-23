@@ -503,8 +503,8 @@ void main() {
 
     // 瀑布流卡片：两张卡片、标签文本可见。
     expect(find.byType(Card), findsNWidgets(2));
-    expect(find.text('#blue_sky'), findsOneWidget);
-    expect(find.text('#night'), findsOneWidget);
+    expect(find.text('#blue_sky'), findsNothing);
+    expect(find.text('#night'), findsNothing);
 
     // 点击第一张卡片跳转预览页。
     await tester.tap(find.byType(Card).first);

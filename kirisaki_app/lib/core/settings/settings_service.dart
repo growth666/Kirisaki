@@ -13,12 +13,14 @@ class SettingsService extends ChangeNotifier {
   static const String downloadDirKey = 'download_dir';
   static const String showAdultContentKey = 'show_adult_content';
   static const String refreshRateKey = 'refresh_rate_mode';
+  static const String accentColorKey = 'accent_color';
 
   SharedPreferencesAsync? _prefs;
   ThemeMode _themeMode = ThemeMode.system;
   String? _downloadDir;
   bool _showAdultContent = false;
   RefreshRateMode _refreshRateMode = RefreshRateMode.system;
+  AccentColor _accentColor = AccentColor.pink;
 
   /// 当前主题模式（默认跟随系统）。
   ThemeMode get themeMode => _themeMode;
@@ -28,6 +30,7 @@ class SettingsService extends ChangeNotifier {
   String? get downloadDir => _downloadDir;
   bool get showAdultContent => _showAdultContent;
   RefreshRateMode get refreshRateMode => _refreshRateMode;
+  AccentColor get accentColor => _accentColor;
 
   SharedPreferencesAsync? get _ensurePrefs {
     try {
@@ -58,6 +61,11 @@ class SettingsService extends ChangeNotifier {
       _refreshRateMode = RefreshRateMode.values.firstWhere(
         (mode) => mode.name == rawRefresh,
         orElse: () => RefreshRateMode.system,
+      );
+      final rawAccent = await prefs.getString(accentColorKey);
+      _accentColor = AccentColor.values.firstWhere(
+        (color) => color.name == rawAccent,
+        orElse: () => AccentColor.pink,
       );
       notifyListeners();
     } catch (_) {
@@ -132,6 +140,17 @@ class SettingsService extends ChangeNotifier {
       await (_ensurePrefs)?.setString(refreshRateKey, mode.name);
     } catch (_) {}
   }
+
+  Future<void> setAccentColor(AccentColor color) async {
+    if (_accentColor == color) return;
+    _accentColor = color;
+    notifyListeners();
+    try {
+      await (_ensurePrefs)?.setString(accentColorKey, color.name);
+    } catch (_) {}
+  }
 }
 
 enum RefreshRateMode { system, standard, high }
+
+enum AccentColor { pink, wine, gold, teal }

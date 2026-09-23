@@ -44,11 +44,20 @@ class _KirisakiAppState extends State<KirisakiApp> {
     return MaterialApp.router(
       title: AppConstants.appName,
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.light,
-      darkTheme: AppTheme.dark,
+      theme: AppTheme.lightFor(_accent(SettingsService.instance.accentColor)),
+      darkTheme: AppTheme.darkFor(
+        _accent(SettingsService.instance.accentColor),
+      ),
       // 主题模式由设置页切换（亮色/暗黑/跟随系统），持久化并全页面生效。
       themeMode: SettingsService.instance.themeMode,
       routerConfig: appRouter,
     );
   }
+
+  Color _accent(AccentColor color) => switch (color) {
+    AccentColor.pink => const Color(0xFFEC407A),
+    AccentColor.wine => const Color(0xFFB84A4A),
+    AccentColor.gold => const Color(0xFFD39B2A),
+    AccentColor.teal => const Color(0xFF168A8A),
+  };
 }
