@@ -764,7 +764,7 @@ class _SearchPageState extends State<SearchPage>
     if (!_searched) {
       return const _HintView(
         icon: Icons.travel_explore,
-        message: '输入关键词，搜索二次元图片',
+        message: '输入关键词，来点美图(๑•̀ㅂ•́)و✧  ',
       );
     }
     if (_items.isEmpty) {

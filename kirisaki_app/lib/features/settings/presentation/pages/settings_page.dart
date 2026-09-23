@@ -11,6 +11,7 @@ import '../../../../core/profile/search_history_service.dart';
 import '../../../../core/settings/settings_service.dart';
 import '../../../../core/source/source_service.dart';
 import '../../../../core/source/confirmed_tag_service.dart';
+import '../../../../core/backup/data_backup_service.dart';
 
 /// 设置页面：下载设置、外观设置、缓存管理、数据管理、关于入口。
 class SettingsPage extends StatefulWidget {
@@ -22,6 +23,48 @@ class SettingsPage extends StatefulWidget {
 
 class _SettingsPageState extends State<SettingsPage> {
   final SettingsService _settings = SettingsService.instance;
+  final DataBackupService _backup = DataBackupService();
+
+  Future<void> _backupData() async {
+    try {
+      final path = await _backup.exportToFile();
+      if (mounted && path != null) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('备份已保存：$path')));
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('备份失败：$error')));
+      }
+    }
+  }
+
+  Future<void> _restoreData() async {
+    try {
+      final restored = await _backup.restoreFromFile();
+      if (!restored) return;
+      if (!mounted) return;
+      await showDialog<void>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('恢复完成'),
+          content: const Text('备份数据已写入。请重启应用，使收藏、历史和图源配置全部重新加载。'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('知道了'),
+            ),
+          ],
+        ),
+      );
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('恢复失败：$error')));
+      }
+    }
+  }
 
   @override
   void initState() {
@@ -239,6 +282,26 @@ class _SettingsPageState extends State<SettingsPage> {
                 subtitle: const Text('记住 Zerochan 标签选择；清除后可重新选择'),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: _clearConfirmedTags,
+              ),
+              ListTile(
+                leading: const Icon(Icons.backup_outlined),
+                title: const Text('数据备份与恢复'),
+                subtitle: const Text('导出或恢复收藏、历史、图源和设置；不包含图片缓存'),
+                trailing: Wrap(
+                  spacing: 4,
+                  children: [
+                    IconButton(
+                      tooltip: '导出备份',
+                      onPressed: _backupData,
+                      icon: const Icon(Icons.file_upload_outlined),
+                    ),
+                    IconButton(
+                      tooltip: '导入备份',
+                      onPressed: _restoreData,
+                      icon: const Icon(Icons.file_download_outlined),
+                    ),
+                  ],
+                ),
               ),
               ListTile(
                 leading: Icon(

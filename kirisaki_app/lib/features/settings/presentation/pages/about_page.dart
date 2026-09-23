@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/constants/app_constants.dart';
 
@@ -38,39 +39,70 @@ class AboutPage extends StatelessWidget {
                     color: theme.colorScheme.outline,
                   ),
                 ),
-                const SizedBox(height: 24),
-                const Text(
-                  '本地中文标签词库：DanbooruSearchOnline\nSuzumiyaAkizuki · GPL-3.0',
-                  textAlign: TextAlign.center,
-                ),
-                const SelectableText(
-                  'https://github.com/SuzumiyaAkizuki/DanbooruSearchOnline',
-                  textAlign: TextAlign.center,
-                ),
-                TextButton(
-                  onPressed: () async {
-                    final text = await rootBundle.loadString(
-                      'assets/search/DanbooruSearchOnline-LICENSE.txt',
-                    );
-                    if (!context.mounted) return;
-                    showDialog<void>(
-                      context: context,
-                      builder: (context) => AlertDialog(
-                        title: const Text('词库许可证 · GPL-3.0'),
-                        content: SingleChildScrollView(
-                          child: SelectableText(text),
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(context),
-                            child: const Text('关闭'),
+                const SizedBox(height: 16),
+                Card(
+                  child: ExpansionTile(
+                    leading: const Icon(Icons.article_outlined),
+                    title: const Text('版本说明'),
+                    subtitle: const Text('当前版本功能与已知限制'),
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Kirisaki ${AppConstants.appVersion}',
+                                style: theme.textTheme.titleMedium,
+                              ),
+                              const SizedBox(height: 8),
+                              const Text(
+                                '• 多图源搜索、推荐流与中文标签辅助\n• 图片收藏、浏览历史与下载记录\n• 缩略图缓存、代理设置与内容显示控制\n• 数据备份与恢复\n• Android 刷新率偏好设置',
+                              ),
+                              const SizedBox(height: 12),
+                              Text('已知限制', style: theme.textTheme.titleSmall),
+                              const SizedBox(height: 4),
+                              const Text(
+                                '图源可用性受网络环境和站点限制影响；刷新率设置会受设备、省电模式和系统策略限制。',
+                              ),
+                            ],
                           ),
-                        ],
+                        ),
                       ),
-                    );
-                  },
-                  child: const Text('查看词库许可证'),
+                    ],
+                  ),
                 ),
+                const SizedBox(height: 24),
+                Card(
+                  child: ListTile(
+                    leading: const Icon(Icons.feedback_outlined),
+                    title: const Text('反馈问题'),
+                    subtitle: const Text('在 GitHub Issues 提交问题，开发者会在那里收到反馈'),
+                    trailing: const Icon(Icons.open_in_new),
+                    onTap: () async {
+                      final uri = Uri.parse(
+                        'https://github.com/growth666/Kirisaki/issues/new?title=%5B反馈%5D+请描述问题',
+                      );
+                      final opened = await launchUrl(
+                        uri,
+                        mode: LaunchMode.externalApplication,
+                      );
+                      if (!context.mounted) return;
+                      if (!opened) {
+                        await Clipboard.setData(
+                          ClipboardData(text: uri.toString()),
+                        );
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('无法打开浏览器，反馈链接已复制')),
+                        );
+                      }
+                    },
+                  ),
+                ),
+                const SizedBox(height: 8),
                 Text(
                   '跨平台二次元图片搜图客户端：支持多图源搜索、'
                   '推荐流、图片收藏与下载。',

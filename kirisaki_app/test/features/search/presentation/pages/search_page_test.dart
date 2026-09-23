@@ -476,7 +476,7 @@ void main() {
     );
     await tester.pump();
 
-    expect(find.text('输入关键词，搜索二次元图片'), findsOneWidget);
+    expect(find.text('输入关键词，来点美图(๑•̀ㅂ•́)و✧  '), findsOneWidget);
   });
 
   testWidgets('搜索后展示瀑布流卡片，点击跳转预览页', (WidgetTester tester) async {
@@ -693,7 +693,7 @@ void main() {
 
     // 切换图源：列表清空、回到初始提示。
     expect(find.byType(Card), findsNothing);
-    expect(find.text('输入关键词，搜索二次元图片'), findsOneWidget);
+    expect(find.text('输入关键词，来点美图(๑•̀ㅂ•́)و✧  '), findsOneWidget);
   });
 
   testWidgets('默认自动加载推荐流（无需关键词）', (WidgetTester tester) async {
