@@ -29,9 +29,41 @@ class MainActivity : FlutterActivity() {
     private val downloadChannel = "kirisaki/download"
     private val pickTreeRequestCode = 1001
     private var pendingPickResult: MethodChannel.Result? = null
+    private val backupRequestCode = 1002
+    private var pendingBackupResult: MethodChannel.Result? = null
+    private var pendingBackupText: String? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "kirisaki/backup")
+            .setMethodCallHandler { call, result ->
+                if (call.method != "exportBackup") {
+                    result.notImplemented()
+                    return@setMethodCallHandler
+                }
+                if (pendingBackupResult != null) {
+                    result.error("BUSY", "已有备份正在导出", null)
+                    return@setMethodCallHandler
+                }
+                val text = call.argument<String>("text")
+                if (text == null) {
+                    result.error("INVALID_ARGUMENT", "备份内容为空", null)
+                    return@setMethodCallHandler
+                }
+                pendingBackupResult = result
+                pendingBackupText = text
+                try {
+                    startActivityForResult(Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
+                        addCategory(Intent.CATEGORY_OPENABLE)
+                        type = "application/json"
+                        putExtra(Intent.EXTRA_TITLE, "kirisaki-backup.json")
+                    }, backupRequestCode)
+                } catch (e: Exception) {
+                    pendingBackupResult = null
+                    pendingBackupText = null
+                    result.error("EXPORT_FAILED", e.message, null)
+                }
+            }
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "kirisaki/display")
             .setMethodCallHandler { call, result ->
                 when (call.method) {
@@ -96,6 +128,35 @@ class MainActivity : FlutterActivity() {
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == backupRequestCode) {
+            val result = pendingBackupResult ?: return
+            val text = pendingBackupText
+            val uri = data?.data
+            if (resultCode != Activity.RESULT_OK || uri == null) {
+                pendingBackupResult = null
+                pendingBackupText = null
+                result.success(null)
+                return
+            }
+            // File providers may be slow; keep disk work off the UI thread.
+            Thread {
+                var failure: Exception? = null
+                try {
+                    contentResolver.openOutputStream(uri, "wt")?.use { stream ->
+                        stream.write(checkNotNull(text).toByteArray(Charsets.UTF_8))
+                    } ?: throw IllegalStateException("无法写入所选备份文件")
+                } catch (e: Exception) {
+                    failure = e
+                }
+                runOnUiThread {
+                    pendingBackupResult = null
+                    pendingBackupText = null
+                    if (failure == null) result.success(uri.toString())
+                    else result.error("EXPORT_FAILED", failure?.message, null)
+                }
+            }.start()
+            return
+        }
         if (requestCode != pickTreeRequestCode) {
             return
         }

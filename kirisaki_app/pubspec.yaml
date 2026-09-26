@@ -2,7 +2,7 @@ name: kirisaki_app
 description: "Kirisaki —— 跨平台二次元图片搜图客户端"
 publish_to: 'none'
 
-version: 1.0.0+1
+version: 1.0.0+2
 
 environment:
   sdk: ^3.13.1

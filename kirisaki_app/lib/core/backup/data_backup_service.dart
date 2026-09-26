@@ -1,6 +1,8 @@
 import 'dart:convert';
 
 import 'package:file_selector/file_selector.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Export/import user data only. Image files and cache contents are excluded.
@@ -40,6 +42,13 @@ class DataBackupService {
   static const _booleanKeys = {'show_adult_content'};
 
   Future<String?> exportToFile() async {
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+      return const MethodChannel('kirisaki/backup')
+          .invokeMethod<String>('exportBackup', {
+            'text': const JsonEncoder.withIndent('  ')
+                .convert(await createBackup()),
+          });
+    }
     final location = await getSaveLocation(
       suggestedName: 'kirisaki-backup.json',
       acceptedTypeGroups: [
