@@ -1,8 +1,5 @@
-import 'dart:io';
-
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
@@ -22,6 +19,11 @@ class _FailedDownload implements ImageSaveService {
 }
 
 void main() {
+  setUp(() {
+    SharedPreferencesAsyncPlatform.instance =
+        InMemorySharedPreferencesAsync.empty();
+  });
+
   testWidgets('窄屏大量标签可折叠且保留图片空间', (tester) async {
     tester.view.physicalSize = const Size(360, 640);
     tester.view.devicePixelRatio = 1;
@@ -52,16 +54,6 @@ void main() {
     expect(find.text('#tag_0'), findsNothing);
   });
 
-  setUpAll(() {
-    // CachedNetworkImage 默认缓存依赖 path_provider 插件，
-    // 测试环境无插件实现，mock 通道返回系统临时目录。
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(
-          const MethodChannel('plugins.flutter.io/path_provider'),
-          (MethodCall call) async => Directory.systemTemp.path,
-        );
-  });
-
   testWidgets('渲染原图区域与标签', (WidgetTester tester) async {
     const ImageItem item = ImageItem(
       imageUrl: 'https://example.test/image/a.jpg',
@@ -70,9 +62,7 @@ void main() {
     await tester.pumpWidget(
       const MaterialApp(home: ImagePreviewPage(item: item)),
     );
-    // 注：测试环境图片网络加载为真实异步 IO，fake-async 下不会收敛，
-    // 此处只断言不依赖图片加载结果的结构内容；"图片加载失败"占位组件
-    // 属于 CachedNetworkImage errorWidget 路径，以 Web 运行验证（优先 Web 调试）。
+    // 测试环境不依赖真实网络图片加载，只断言预览页的结构内容。
     await tester.pump();
 
     expect(find.text('图片预览'), findsOneWidget);
@@ -138,8 +128,6 @@ void main() {
   });
 
   testWidgets('收藏按钮切换与状态实时同步', (WidgetTester tester) async {
-    SharedPreferencesAsyncPlatform.instance =
-        InMemorySharedPreferencesAsync.empty();
     final FavoriteService service = FavoriteService();
     const ImageItem item = ImageItem(
       imageUrl: 'https://example.test/image/fav.jpg',

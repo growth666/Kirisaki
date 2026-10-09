@@ -11,7 +11,7 @@ import 'source_config.dart';
 /// 使用 [SharedPreferencesAsync]（官方推荐新 API）。
 class CustomSourceStore {
   CustomSourceStore({SharedPreferencesAsync? preferences})
-      : _preferences = preferences ?? SharedPreferencesAsync();
+    : _preferences = preferences ?? SharedPreferencesAsync();
 
   /// 自定义图源存储 key。
   static const String storageKey = 'custom_sources';
@@ -41,15 +41,9 @@ class CustomSourceStore {
 
   /// 保存自定义图源列表（整体覆盖写入）。
   Future<void> save(List<SourceConfig> sources) async {
-    final String raw =
-        jsonEncode(sources.map((SourceConfig s) => s.toJson()).toList());
+    final String raw = jsonEncode(
+      sources.map((SourceConfig s) => s.toJson()).toList(),
+    );
     await _preferences.setString(storageKey, raw);
-  }
-
-  /// 按 [id] 删除自定义图源并持久化。
-  Future<void> removeById(String id) async {
-    final List<SourceConfig> sources = await load();
-    sources.removeWhere((SourceConfig s) => s.id == id);
-    await save(sources);
   }
 }

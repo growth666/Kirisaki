@@ -22,8 +22,7 @@ class ImageSaveResult {
 /// 图片保存服务抽象接口（按平台实现）。
 ///
 /// - Web 端：浏览器下载（见 image_downloader.dart 的条件导入实现）。
-/// - Android：保存到系统相册（基于 gallery_saver_plus），
-///   **具体存储实现留待后续轮次，本轮仅接口声明**。
+/// - Android：由原生 MethodChannel 保存到系统下载目录。
 abstract interface class ImageSaveService {
   /// 保存 [imageUrl] 指向的图片。
   ///

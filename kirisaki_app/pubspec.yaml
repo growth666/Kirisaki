@@ -11,9 +11,6 @@ dependencies:
   flutter:
     sdk: flutter
 
-  cupertino_icons: ^1.0.8
-  # 网络请求
-  dio: ^5.11.0
   # HTTP 请求（图源解析服务使用）
   http: ^1.6.0
   crypto: ^3.0.7
@@ -26,8 +23,6 @@ dependencies:
   path_provider: ^2.1.6
   # 桌面端目录选择器（下载位置自选用）
   file_selector: ^1.1.0
-  # 网络图片加载与缓存
-  cached_network_image: ^3.4.1
   # 瀑布流网格布局
   flutter_staggered_grid_view: ^0.7.0
   # 声明式路由
@@ -35,10 +30,6 @@ dependencies:
   url_launcher: ^6.3.2
   # 本地偏好存储
   shared_preferences: ^2.5.5
-  # 运行时权限申请
-  permission_handler: 11.3.1
-  # 图片保存到系统相册
-  gallery_saver_plus: ^3.2.9
 
 dev_dependencies:
   flutter_test:

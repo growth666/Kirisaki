@@ -17,7 +17,7 @@ import '../../../../core/source/source_parse_service.dart';
 /// [ThumbnailMemoryCache] 并展示；后续相同 URL 直接命中内存缓存，
 /// 避免重复请求相同缩略资源。
 ///
-/// **仅用于缩略图**；预览页原图继续使用 CachedNetworkImage，
+/// **仅用于缩略图**；预览页原图使用 OriginalImage，
 /// 不接入内存缓存。
 class ThumbnailImage extends StatefulWidget {
   const ThumbnailImage({

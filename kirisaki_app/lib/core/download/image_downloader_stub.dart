@@ -1,12 +1,12 @@
 import 'image_save_service.dart';
 
-/// 创建下载服务（非 Web 平台分支）。
+/// 创建不支持下载的平台兜底服务。
 ImageSaveService createDownloadService() => _StubImageDownloadService();
 
-/// 非 Web 平台 stub：浏览器下载不可用。
+/// 无可用平台实现时返回明确的失败提示。
 ///
-/// Android 真实存储实现（基于 gallery_saver_plus 保存到系统相册）
-/// 留待后续轮次接入，届时替换本 stub。
+/// Android、桌面端和其他非 Web 平台的实现通过条件导入提供；
+/// 此 stub 仅用于没有可用平台实现的目标。
 class _StubImageDownloadService implements ImageSaveService {
   @override
   Future<ImageSaveResult> saveImage({
@@ -14,7 +14,7 @@ class _StubImageDownloadService implements ImageSaveService {
     String? fileName,
   }) async {
     return const ImageSaveResult.failure(
-      '当前平台不支持浏览器下载（Android 存储实现后续轮次接入）',
+      '当前平台不支持图片下载',
     );
   }
 }

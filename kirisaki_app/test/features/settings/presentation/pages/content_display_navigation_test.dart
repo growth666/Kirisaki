@@ -30,7 +30,10 @@ void main() {
       appRouter.pop();
       await tester.pumpAndSettle();
       expect(find.byType(ContentDisplayPage), findsNothing);
-        tester.element(find.byType(KirisakiApp)).reassemble();
+      final reassembly = tester.binding.reassembleApplication();
+      // 热重载会等待下一帧；先推进测试帧，再等待重组完成。
+      await tester.pump();
+      await reassembly;
       await tester.pumpAndSettle();
     }
     expect(tester.takeException(), isNull);
