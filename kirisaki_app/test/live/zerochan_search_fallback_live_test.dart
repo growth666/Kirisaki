@@ -1,3 +1,5 @@
+import 'dart:ui' as ui;
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:kirisaki_app/core/source/builtin_sources.dart';
@@ -32,6 +34,15 @@ void main() {
           expect(response.statusCode, 200, reason: url);
           expect(response.bodyBytes, isNotEmpty);
           expect(response.headers['content-type'], startsWith('image/'));
+          final codec = await ui.instantiateImageCodec(response.bodyBytes);
+          try {
+            final frame = await codec.getNextFrame();
+            expect(frame.image.width, greaterThan(0));
+            expect(frame.image.height, greaterThan(0));
+            frame.image.dispose();
+          } finally {
+            codec.dispose();
+          }
         }
       } finally {
         service.close();

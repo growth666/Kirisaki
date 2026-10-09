@@ -23,13 +23,24 @@ abstract final class ZerochanXmlParser {
         throw const FormatException('RSS 图片链接无效');
       }
       final content = entry.getElement('content', namespace: media);
+      final sample = content?.getAttribute('url');
+      final thumbnail = entry
+          .getElement('thumbnail', namespace: media)
+          ?.getAttribute('url');
+      // Flutter's native image codecs cannot consistently decode AVIF.
+      // Use the supplied JPEG sample, never guess an original image URL.
+      final compatibleThumbnail =
+          thumbnail != null &&
+              Uri.tryParse(thumbnail)?.path.toLowerCase().endsWith('.avif') ==
+                  true &&
+              sample != null
+          ? sample
+          : thumbnail;
       items.add({
         'id': id,
         'tag': entry.getElement('title')?.innerText ?? '',
-        'thumbnail': entry
-            .getElement('thumbnail', namespace: media)
-            ?.getAttribute('url'),
-        'sample': content?.getAttribute('url'),
+        'thumbnail': compatibleThumbnail,
+        'sample': sample,
         'width': content?.getAttribute('width'),
         'height': content?.getAttribute('height'),
         'tags':

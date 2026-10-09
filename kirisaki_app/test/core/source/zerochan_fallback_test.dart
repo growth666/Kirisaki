@@ -41,7 +41,7 @@ void main() {
         expect(requests.last.queryParameters['l'], '24');
         expect(requests.last.queryParameters.containsKey('json'), false);
         final item = result.items.single;
-        expect(item.thumbnailUrl, 'https://s3.zerochan.net/123.avif');
+        expect(item.thumbnailUrl, 'https://s1.zerochan.net/123.jpg');
         expect(item.detailUrl, 'https://www.zerochan.net/123?json');
         expect(item.imageUrl, isNot(item.previewUrl));
         expect(item.tags, ['Character', 'Long Hair']);
@@ -49,6 +49,25 @@ void main() {
       },
     );
   }
+  test('keeps JPEG thumbnails and falls back only for AVIF with a sample', () {
+    final base = Uri.parse(source.baseUrl);
+    final jpeg = ZerochanXmlParser.parse(
+      rss.replaceAll('123.avif', '123.jpg'),
+      base,
+    );
+    expect(
+      (jpeg['items'] as List).single['thumbnail'],
+      'https://s3.zerochan.net/123.jpg',
+    );
+    final missingSample = ZerochanXmlParser.parse(
+      rss.replaceAll('url="https://s1.zerochan.net/123.jpg"', ''),
+      base,
+    );
+    expect(
+      (missingSample['items'] as List).single['thumbnail'],
+      'https://s3.zerochan.net/123.avif',
+    );
+  });
   for (final status in [403, 429]) {
     test('does not retry denial $status', () async {
       var calls = 0;
