@@ -83,16 +83,20 @@ abstract final class MoebooruJsonParser {
   ) {
     final id = post['id'];
     if (format == SourceJsonFormat.zerochan) {
-      if (id is! int || post['tag'] is! String) return null;
-      final thumbnail = Uri.https(
-        's1.zerochan.net',
-        '/${(post['tag'] as String).replaceAll(' ', '.')}.600.$id.jpg',
-      ).toString();
-      final page = baseUri.resolve('/$id').toString();
+      final zerochanId = _intField(id);
+      if (zerochanId == null || post['tag'] is! String) return null;
+      final thumbnail =
+          _stringField(post['thumbnail']) ??
+          Uri.https(
+            's1.zerochan.net',
+            '/${(post['tag'] as String).replaceAll(' ', '.')}.600.$zerochanId.jpg',
+          ).toString();
+      final page = baseUri.resolve('/$zerochanId').toString();
       return ImageItem(
         imageUrl: page,
         thumbnailUrl: thumbnail,
-        detailUrl: baseUri.resolve('/$id?json').toString(),
+        previewUrl: _stringField(post['sample']),
+        detailUrl: baseUri.resolve('/$zerochanId?json').toString(),
         sourcePage: page,
         width: _intField(post['width']),
         height: _intField(post['height']),

@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:html/dom.dart';
 import 'package:html/parser.dart' as html_parser;
+import 'zerochan_xml_parser.dart';
 import 'package:http/http.dart' as http;
 
 import '../network/http_client_factory.dart';
@@ -125,6 +126,47 @@ class SourceParseService {
   }
 
   Future<http.Response> _searchResponse(SourceConfig config, Uri uri) async {
+    final response = await _getSearchResponse(config, uri);
+    if (config.jsonFormat != SourceJsonFormat.zerochan || kIsWeb) {
+      return response;
+    }
+    var malformed = false;
+    if (response.statusCode == 200) {
+      try {
+        final value = jsonDecode(utf8.decode(response.bodyBytes));
+        malformed =
+            value is! Map || (value.isNotEmpty && value['items'] is! List);
+      } catch (_) {
+        malformed = true;
+      }
+    }
+    // Do not retry access denials or rate limits through another endpoint.
+    if (!malformed && ![500, 502].contains(response.statusCode)) {
+      return response;
+    }
+    final query = Map<String, String>.of(uri.queryParameters)..remove('json');
+    query['xml'] = '';
+    final fallback = await _getSearchResponse(
+      config,
+      uri.replace(queryParameters: query),
+    );
+    if (fallback.statusCode != 200) return fallback;
+    try {
+      final data = ZerochanXmlParser.parse(
+        utf8.decode(fallback.bodyBytes),
+        uri,
+      );
+      return http.Response(
+        jsonEncode(data),
+        200,
+        headers: {'content-type': 'application/json; charset=utf-8'},
+      );
+    } catch (_) {
+      return response;
+    }
+  }
+
+  Future<http.Response> _getSearchResponse(SourceConfig config, Uri uri) async {
     if (kIsWeb || config.jsonFormat != SourceJsonFormat.zerochan) {
       return _client.get(uri, headers: {'User-Agent': config.userAgent});
     }

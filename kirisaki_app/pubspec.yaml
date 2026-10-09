@@ -19,6 +19,7 @@ dependencies:
   crypto: ^3.0.7
   # HTML 解析（CSS 选择器）
   html: ^0.15.7
+  xml: ^6.6.1
   # Web 平台 API（浏览器下载实现用，规避已废弃的 dart:html）
   web: ^1.1.1
   # 系统目录获取（桌面端下载实现用）
