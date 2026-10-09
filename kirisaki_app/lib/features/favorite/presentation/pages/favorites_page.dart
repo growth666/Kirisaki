@@ -54,8 +54,15 @@ class _FavoritesPageState extends State<FavoritesPage>
   }
 
   Future<void> _deleteSelected() async {
-    await _service.removeAll(_selectedUrls);
-    _exitSelection();
+    try {
+      await _service.removeAll(_selectedUrls);
+      if (mounted) _exitSelection();
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('删除失败，收藏已保留，请重试')));
+      }
+    }
   }
 
   /// 复用现有预览路由：url 参数兼容保留，extra 携带完整 ImageItem。
@@ -103,6 +110,17 @@ class _FavoritesPageState extends State<FavoritesPage>
       body: ListenableBuilder(
         listenable: _service,
         builder: (BuildContext context, Widget? child) {
+          if (_service.loadError != null) {
+            return Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(_service.loadError!),
+                  TextButton(onPressed: _service.load, child: const Text('重试')),
+                ],
+              ),
+            );
+          }
           // 注意：必须在 builder 内实时读取（外层闭包捕获的快照会过期，
           // 导致 load() 完成后列表不刷新）。
           final List<ImageItem> items = _service.items;

@@ -3,88 +3,64 @@ import 'package:flutter/foundation.dart';
 import '../source/image_item.dart';
 import 'favorite_store.dart';
 
-/// 收藏管理服务：添加/取消收藏、判断是否已收藏、列表去重。
-///
-/// 继承 [ChangeNotifier]（Flutter 内置，不引入状态管理库），
-/// 收藏变更后通知监听者 → 收藏页与预览页收藏按钮状态实时同步。
 class FavoriteService extends ChangeNotifier {
-  FavoriteService();
-
-  /// 全局共享实例（收藏页/预览页共用同一数据源）。
+  FavoriteService({FavoriteStore? store}) : _store = store ?? FavoriteStore();
   static final FavoriteService instance = FavoriteService();
-
-  /// 持久化仓库（惰性创建：仅在实际 load/persist 时触碰平台通道，
-  /// 纯内存操作如 contains 不依赖平台实现）。
   FavoriteStore? _store;
-
   FavoriteStore get _ensureStore => _store ??= FavoriteStore();
-
-  final List<ImageItem> _items = <ImageItem>[];
-
-  /// 是否已从持久化加载过（load 幂等）。
+  List<ImageItem> _items = [];
   bool _loaded = false;
+  Future<void>? _loading;
+  Future<void> _queue = Future.value();
+  String? loadError;
+  List<ImageItem> get items => List.unmodifiable(_items);
+  bool contains(String url) => _items.any((item) => item.imageUrl == url);
 
-  /// 当前收藏列表（按收藏顺序，只读视图）。
-  List<ImageItem> get items => List<ImageItem>.unmodifiable(_items);
-
-  /// 从持久化加载收藏列表（幂等：仅首次调用生效）。
-  Future<void> load() async {
-    if (_loaded) {
-      return;
-    }
-    _loaded = true;
-    _items
-      ..clear()
-      ..addAll(await _ensureStore.load());
-    notifyListeners();
+  Future<void> load() {
+    if (_loaded) return Future.value();
+    return _loading ??= _read().whenComplete(() => _loading = null);
   }
 
-  /// [imageUrl] 是否已收藏。
-  bool contains(String imageUrl) =>
-      _items.any((ImageItem item) => item.imageUrl == imageUrl);
-
-  /// 添加收藏；按 imageUrl 去重（已存在则跳过）。
-  Future<void> add(ImageItem item) async {
-    if (contains(item.imageUrl)) {
-      return;
+  Future<void> _read() async {
+    try {
+      final stored = await _ensureStore.load();
+      final changed = stored.isNotEmpty || loadError != null;
+      _items = stored;
+      _loaded = true;
+      loadError = null;
+      if (changed) notifyListeners();
+    } catch (_) {
+      loadError = '收藏读取失败，原数据已保留，请重试';
+      notifyListeners();
     }
-    _items.add(item);
-    notifyListeners();
-    await _persist();
   }
 
-  /// 取消收藏 [imageUrl]；不存在则无操作。
-  Future<void> remove(String imageUrl) async {
-    final int before = _items.length;
-    _items.removeWhere((ImageItem item) => item.imageUrl == imageUrl);
-    if (_items.length == before) {
-      return;
-    }
-    notifyListeners();
-    await _persist();
+  Future<void> _change(void Function(List<ImageItem>) edit) {
+    final operation = _queue.then((_) async {
+      await load();
+      if (!_loaded) throw StateError(loadError!);
+      final next = [..._items];
+      edit(next);
+      if (listEquals(next, _items)) return;
+      await _ensureStore.save(next);
+      _items = next;
+      notifyListeners();
+    });
+    _queue = operation.then<void>((_) {}, onError: (Object _, StackTrace _) {});
+    return operation;
   }
 
-  /// 批量取消收藏（长按多选删除用）；全部不存在时无操作。
-  Future<void> removeAll(Iterable<String> imageUrls) async {
-    final Set<String> urls = imageUrls.toSet();
-    final int before = _items.length;
-    _items.removeWhere((ImageItem item) => urls.contains(item.imageUrl));
-    if (_items.length == before) {
-      return;
-    }
-    notifyListeners();
-    await _persist();
+  Future<void> add(ImageItem item) => _change((next) {
+    if (!next.any((e) => e.imageUrl == item.imageUrl)) next.add(item);
+  });
+  Future<void> remove(String url) =>
+      _change((next) => next.removeWhere((e) => e.imageUrl == url));
+  Future<void> removeAll(Iterable<String> urls) {
+    final selected = urls.toSet();
+    return _change(
+      (next) => next.removeWhere((e) => selected.contains(e.imageUrl)),
+    );
   }
 
-  /// 清空全部收藏（设置页"清空本地数据"用），一次持久化。
-  Future<void> clearAll() async {
-    if (_items.isEmpty) {
-      return;
-    }
-    _items.clear();
-    notifyListeners();
-    await _persist();
-  }
-
-  Future<void> _persist() => _ensureStore.save(_items);
+  Future<void> clearAll() => _change((next) => next.clear());
 }

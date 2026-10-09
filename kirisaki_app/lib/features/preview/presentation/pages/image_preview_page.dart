@@ -174,6 +174,7 @@ class _FavoriteButtonState extends State<_FavoriteButton> {
   void initState() {
     super.initState();
     widget.service.addListener(_onServiceChanged);
+    widget.service.load();
   }
 
   @override
@@ -203,16 +204,24 @@ class _FavoriteButtonState extends State<_FavoriteButton> {
             color: favorited ? Theme.of(context).colorScheme.primary : null,
           ),
           onPressed: () async {
-            if (favorited) {
-              await widget.service.remove(widget.item.imageUrl);
-              if (context.mounted) {
-                _showSnackBar(context, '已取消收藏');
+            try {
+              await widget.service.load();
+              if (widget.service.loadError != null) {
+                throw StateError('load failed');
               }
-            } else {
-              await widget.service.add(widget.item);
-              if (context.mounted) {
-                _showSnackBar(context, '已收藏');
+              if (widget.service.contains(widget.item.imageUrl)) {
+                await widget.service.remove(widget.item.imageUrl);
+                if (context.mounted) {
+                  _showSnackBar(context, '已取消收藏');
+                }
+              } else {
+                await widget.service.add(widget.item);
+                if (context.mounted) {
+                  _showSnackBar(context, '已收藏');
+                }
               }
+            } catch (_) {
+              if (context.mounted) _showSnackBar(context, '收藏操作失败，原数据已保留，请重试');
             }
           },
         );
